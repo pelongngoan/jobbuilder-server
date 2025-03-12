@@ -4,16 +4,13 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 
 dotenv.config();
+
 const app = express();
-const port = 3000;
+const port = process.env.PORT;
 
 app.use(express.json());
 
-app.use(router); // Register router with app
-
-// app.get("/", (req, res) => {
-//   res.send("Hello World!");
-// });
+app.use(router);
 
 // Connect to MongoDB
 connectDB();

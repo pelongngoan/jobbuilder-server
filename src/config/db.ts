@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-const MONGO_URI = process.env.MONGO_URI || "";
+dotenv.config();
+const MONGO_URI =
+  process.env.MONGO_URI ||
+  "mongodb+srv://longtl446:KbicJbOjAw8HHmSw@jobbuilderbd.wmm8s.mongodb.net/?retryWrites=true&w=majority&appName=jobBuilderBd";
 
 export const connectDB = async () => {
   try {

@@ -1,24 +1,39 @@
-import { Schema, model, Document, Types } from "mongoose";
+import { Schema, model, Document } from "mongoose";
 
 export interface ICompany extends Document {
   name: string;
-  industry?: string;
+  email: string;
+  password: string;
   location?: string;
+  industry?: string;
   website?: string;
   description?: string;
-  recruiter: Types.ObjectId;
+  logo?: string;
+  hrAccounts: Schema.Types.ObjectId[]; // References HR accounts
+  jobPosts: Schema.Types.ObjectId[]; // References Job posts
   createdAt: Date;
   updatedAt: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 const companySchema = new Schema<ICompany>(
   {
-    name: { type: String, required: true },
-    industry: { type: String },
-    location: { type: String },
-    website: { type: String },
-    description: { type: String },
-    recruiter: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    name: { type: String, required: true, trim: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: { type: String, required: true },
+    location: { type: String, default: "" },
+    industry: { type: String, default: "" },
+    website: { type: String, default: "" },
+    description: { type: String, default: "" },
+    logo: { type: String, default: "" }, // Can store image URL or file path
+    hrAccounts: [{ type: Schema.Types.ObjectId, ref: "HR" }], // Links HR accounts
+    jobPosts: [{ type: Schema.Types.ObjectId, ref: "Job" }], // Links job posts
   },
   { timestamps: true }
 );

@@ -1,51 +1,44 @@
-import { Schema, model, Document, Types } from "mongoose";
-
-export interface IOtherField {
-  title: string;
-  content: string;
-}
+import { Schema, model, Document } from "mongoose";
 
 export interface IJob extends Document {
+  companyId: Schema.Types.ObjectId;
+  hrId: Schema.Types.ObjectId;
   title: string;
-  company: string;
-  location: string;
   description: string;
   requirements: string[];
-  salary?: number;
-  jobType: "full-time" | "part-time" | "contract" | "internship";
-  postedBy: Types.ObjectId;
-  applicants: Types.ObjectId[];
-  other?: IOtherField[];
+  salaryRange?: string;
+  location: string;
+  jobType: "full-time" | "part-time" | "contract" | "internship" | "remote";
+  category: string;
+  applications: Schema.Types.ObjectId[]; // References applications for this job
+  other?: { title?: string; description?: string; [key: string]: any }; // Dynamic object for extra details
   createdAt: Date;
   updatedAt: Date;
 }
 
 const jobSchema = new Schema<IJob>(
   {
-    title: { type: String, required: true },
-    company: { type: String, required: true },
-    location: { type: String, required: true },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
+    hrId: { type: Schema.Types.ObjectId, ref: "HR", required: true },
+    title: { type: String, required: true, trim: true },
     description: { type: String, required: true },
-    requirements: { type: [String], default: [] },
-    salary: { type: Number, min: 0 }, // Prevent negative salary
+    requirements: [{ type: String, required: true }],
+    salaryRange: { type: String, default: "" },
+    location: { type: String, required: true },
     jobType: {
       type: String,
-      enum: ["full-time", "part-time", "contract", "internship"],
+      enum: ["full-time", "part-time", "contract", "internship", "remote"],
       required: true,
     },
-    postedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    applicants: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
+    category: { type: String, required: true },
+    applications: [{ type: Schema.Types.ObjectId, ref: "Application" }],
     other: {
-      type: [
-        {
-          title: { type: String, required: true },
-          content: { type: String, required: true },
-        },
-      ],
-      default: [],
+      type: Map, // Allows dynamic key-value pairs
+      of: String,
+      default: {},
     },
   },
-  { timestamps: true } // Auto-manages `createdAt` and `updatedAt`
+  { timestamps: true }
 );
 
 export const Job = model<IJob>("Job", jobSchema);
