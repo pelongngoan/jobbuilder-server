@@ -21,7 +21,8 @@ export const getUserProfile = async (req: Request, res: Response) => {
     const userProfile = await Profile.findOne({ userId });
 
     if (!userProfile) {
-      return res.status(404).json({ message: "Profile not found" });
+      res.status(404).json({ message: "Profile not found" });
+      return;
     }
 
     res.status(200).json(userProfile);
@@ -41,7 +42,8 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     );
 
     if (!updatedProfile) {
-      return res.status(404).json({ message: "Profile not found" });
+      res.status(404).json({ message: "Profile not found" });
+      return;
     }
 
     res
@@ -59,7 +61,8 @@ export const getUserSettings = async (req: Request, res: Response) => {
     const userSettings = await Settings.findOne({ userId });
 
     if (!userSettings) {
-      return res.status(404).json({ message: "Settings not found" });
+      res.status(404).json({ message: "Settings not found" });
+      return;
     }
 
     res.status(200).json(userSettings);
@@ -79,7 +82,8 @@ export const updateUserSettings = async (req: Request, res: Response) => {
     );
 
     if (!updatedSettings) {
-      return res.status(404).json({ message: "Settings not found" });
+      res.status(404).json({ message: "Settings not found" });
+      return;
     }
 
     res
@@ -98,13 +102,15 @@ export const changePassword = async (req: Request, res: Response) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      res.status(404).json({ message: "User not found" });
+      return;
     }
 
     // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Incorrect current password" });
+      res.status(400).json({ message: "Incorrect current password" });
+      return;
     }
 
     // Hash new password
