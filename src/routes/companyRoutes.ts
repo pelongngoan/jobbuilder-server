@@ -18,7 +18,7 @@ import {
 const companyRoutes = express.Router();
 
 // 🔹 Company Management
-companyRoutes.post("/", verifyUser, createCompany); // Create a new company
+companyRoutes.post("/signup", verifyUser, createCompany); // Create a new company
 companyRoutes.get("/:companyId", authenticateUser, getCompanyDetails); // Get company details
 companyRoutes.put("/:companyId", verifyCompany, updateCompany); // Update company details
 companyRoutes.delete("/:companyId", verifyCompany, deleteCompany); // Delete company

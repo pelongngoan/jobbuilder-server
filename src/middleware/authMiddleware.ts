@@ -44,9 +44,10 @@ export const verifyUser = async (
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
-      id: string;
+      userId: string;
     };
-    const user = await User.findById(decoded.id);
+
+    const user = await User.findById(decoded.userId);
 
     if (!user) {
       res.status(401).json({ message: "Unauthorized - Invalid User" });

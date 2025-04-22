@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { Types } from "mongoose";
 import { User } from "../database/models/User";
 import { Profile } from "../database/models/Profile";
 import { Settings } from "../database/models/Settings";
@@ -18,6 +17,8 @@ export const verifyToken = (token: string) => {
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.userId; // Assuming req.userId is set by authentication middleware
+    console.log(userId);
+
     const userProfile = await Profile.findOne({ userId });
 
     if (!userProfile) {
