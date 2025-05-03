@@ -19,7 +19,7 @@ jobRoutes.get("/search", searchJobs);
 jobRoutes.get("/:jobId", getJobById);
 
 // 🔹 HR Routes (Protected)
-jobRoutes.post("/", verifyHR, createJob);
+jobRoutes.post("/", createJob);
 jobRoutes.put("/:jobId", verifyHR, updateJob);
 jobRoutes.delete("/:jobId", verifyHR, deleteJob);
 jobRoutes.get("/:jobId/applications", verifyHR, getJobApplications);

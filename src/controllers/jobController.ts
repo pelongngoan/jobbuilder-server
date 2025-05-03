@@ -5,20 +5,11 @@ import { Application } from "../database/models/Application";
 // 🔹 Create a Job Post (HR Only)
 export const createJob = async (req: Request, res: Response) => {
   try {
-    const { title, description, location, salary, requirements, other } =
-      req.body;
-    const hrId = req.hrId;
-    const companyId = req.companyId;
+    // const hrId = req.hrId;
+    // const companyId = req.companyId;
 
     const newJob = new Job({
-      title,
-      description,
-      location,
-      salary,
-      requirements,
-      other,
-      hrId,
-      companyId,
+      ...req.body,
     });
 
     await newJob.save();
