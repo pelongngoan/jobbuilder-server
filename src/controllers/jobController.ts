@@ -1,13 +1,11 @@
 import { Request, Response } from "express";
-import { Job } from "../database/models/Job";
+import { IJob, Job } from "../database/models/Job";
 import { Application } from "../database/models/Application";
-
+import fs from "fs";
+import csv from "csv-parser";
 // 🔹 Create a Job Post (HR Only)
 export const createJob = async (req: Request, res: Response) => {
   try {
-    // const hrId = req.hrId;
-    // const companyId = req.companyId;
-
     const newJob = new Job({
       ...req.body,
     });
@@ -19,13 +17,78 @@ export const createJob = async (req: Request, res: Response) => {
   }
 };
 
-// 🔹 Get All Jobs
+export const uploadJobsFromCSV = async (req: Request, res: Response) => {
+  const file = req.file;
+
+  if (!file) {
+    res.status(400).json({ message: "No file uploaded" });
+    return;
+  }
+
+  const jobs: Partial<IJob>[] = [];
+
+  try {
+    fs.createReadStream(file.path)
+      .pipe(csv())
+      .on("data", (row) => {
+        jobs.push({
+          companyId: req.body.companyId,
+          hrId: req.body.hrId,
+          title: row.title,
+          location: row.location,
+          jobType: row.jobType,
+          salaryRange: row.salaryRange,
+          salaryCurrency: row.salaryCurrency,
+          salaryType: row.salaryType,
+          description: row.description,
+          keyResponsibilities: row.keyResponsibilities?.split("|"),
+          benefits: row.benefits?.split("|"),
+          category: row.category,
+          status: row.status || "open",
+          deadline: row.deadline ? new Date(row.deadline) : undefined,
+          requirements: row.requirements?.split("|"),
+          contactEmail: row.contactEmail,
+          contactPhone: row.contactPhone,
+          logoCompany: row.logoCompany,
+          companyName: row.companyName,
+          companyWebsite: row.companyWebsite,
+          applications: [],
+        });
+      })
+      .on("end", async () => {
+        await Job.insertMany(jobs);
+        fs.unlinkSync(file.path); // Clean up the temp file
+        res
+          .status(201)
+          .json({ message: "Jobs imported successfully", count: jobs.length });
+      });
+  } catch (error) {
+    res.status(500).json({ message: "CSV import error", error });
+  }
+};
+// 🔹 Get All Jobs with Pagination
 export const getAllJobs = async (req: Request, res: Response) => {
   try {
-    const jobs = await Job.find()
-      .populate("companyId", "name")
-      .populate("hrId", "email");
-    res.status(200).json(jobs);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const [jobs, total] = await Promise.all([
+      Job.find()
+        .skip(skip)
+        .limit(limit)
+        .populate("companyId", "name")
+        .populate("hrId", "email")
+        .sort({ createdAt: -1 }),
+      Job.countDocuments(),
+    ]);
+
+    res.status(200).json({
+      jobs,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }

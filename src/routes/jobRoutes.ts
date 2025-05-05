@@ -8,11 +8,15 @@ import {
   deleteJob,
   applyForJob,
   getJobApplications,
+  uploadJobsFromCSV,
 } from "../controllers/jobController";
 import { verifyHR, verifyUser } from "../middleware/authMiddleware";
+import multer from "multer";
 
 const jobRoutes = express.Router();
+const upload = multer({ dest: "uploads/" }); // Temporary upload folder
 
+jobRoutes.post("/upload/csv", upload.single("file"), uploadJobsFromCSV);
 // 🔹 Public Routes
 jobRoutes.get("/", getAllJobs);
 jobRoutes.get("/search", searchJobs);
