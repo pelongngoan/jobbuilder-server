@@ -73,18 +73,19 @@ export const getAllJobs = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
+    const filter: any = {};
+    const { title, location } = req.query;
+
+    if (title) filter.title = { $regex: title, $options: "i" };
+    if (location) filter.location = { $regex: location, $options: "i" };
+
     const [jobs, total] = await Promise.all([
-      Job.find()
-        .skip(skip)
-        .limit(limit)
-        .populate("companyId", "name")
-        .populate("hrId", "email")
-        .sort({ createdAt: -1 }),
-      Job.countDocuments(),
+      Job.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      Job.countDocuments(filter),
     ]);
 
     res.status(200).json({
-      jobs,
+      data: jobs,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -98,9 +99,9 @@ export const getAllJobs = async (req: Request, res: Response) => {
 export const getJobById = async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;
-    const job = await Job.findById(jobId)
-      .populate("companyId", "name")
-      .populate("hrId", "email");
+    const job = await Job.findById(jobId);
+    // .populate("companyId", "name")
+    // .populate("hrId", "email");
 
     if (!job) {
       res.status(404).json({ message: "Job not found" });
@@ -116,26 +117,35 @@ export const getJobById = async (req: Request, res: Response) => {
 // 🔹 Search Jobs with Filters
 export const searchJobs = async (req: Request, res: Response) => {
   try {
-    const { title, location, minSalary, maxSalary } = req.query;
+    const { title, location, minSalary, maxSalary, jobType, category, status } =
+      req.query;
+
     const filter: any = {};
 
     if (title) filter.title = { $regex: title, $options: "i" };
     if (location) filter.location = { $regex: location, $options: "i" };
-    if (minSalary) filter.salary = { $gte: Number(minSalary) };
-    if (maxSalary) filter.salary = { $lte: Number(maxSalary) };
+    if (jobType) filter.jobType = jobType;
+    if (category) filter.category = category;
+    if (status) filter.status = status;
+    if (minSalary || maxSalary) {
+      filter.salary = {};
+      if (minSalary) filter.salary.$gte = Number(minSalary);
+      if (maxSalary) filter.salary.$lte = Number(maxSalary);
+    }
 
-    const jobs = await Job.find(filter);
+    const jobs = await Job.find(filter).sort({ createdAt: -1 });
     res.status(200).json(jobs);
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 };
 
-// 🔹 Update a Job Post (HR Only)
 export const updateJob = async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;
     const updates = req.body;
+    console.log(jobId);
+    console.log(updates);
 
     const updatedJob = await Job.findByIdAndUpdate(jobId, updates, {
       new: true,
@@ -152,7 +162,6 @@ export const updateJob = async (req: Request, res: Response) => {
   }
 };
 
-// 🔹 Delete a Job Post (HR Only)
 export const deleteJob = async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;
@@ -164,7 +173,6 @@ export const deleteJob = async (req: Request, res: Response) => {
   }
 };
 
-// 🔹 Apply for a Job (User Only)
 export const applyForJob = async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;

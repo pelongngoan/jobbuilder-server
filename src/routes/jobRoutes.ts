@@ -17,18 +17,16 @@ const jobRoutes = express.Router();
 const upload = multer({ dest: "uploads/" }); // Temporary upload folder
 
 jobRoutes.post("/upload/csv", upload.single("file"), uploadJobsFromCSV);
-// 🔹 Public Routes
-jobRoutes.get("/", getAllJobs);
-jobRoutes.get("/search", searchJobs);
-jobRoutes.get("/:jobId", getJobById);
-
-// 🔹 HR Routes (Protected)
 jobRoutes.post("/", createJob);
-jobRoutes.put("/:jobId", verifyHR, updateJob);
-jobRoutes.delete("/:jobId", verifyHR, deleteJob);
-jobRoutes.get("/:jobId/applications", verifyHR, getJobApplications);
 
-// 🔹 User Routes (Protected)
+jobRoutes.get("/", getAllJobs);
+jobRoutes.get("/:jobId", getJobById);
+jobRoutes.put("/:jobId", updateJob);
+jobRoutes.delete("/:jobId", deleteJob);
+
+jobRoutes.get("/search", searchJobs);
+
+jobRoutes.get("/:jobId/applications", getJobApplications);
 jobRoutes.post("/:jobId/apply", verifyUser, applyForJob);
 
 export default jobRoutes;
