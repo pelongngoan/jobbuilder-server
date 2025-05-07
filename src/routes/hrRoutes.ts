@@ -1,32 +1,59 @@
 import express from "express";
 import {
-  hrLogin,
-  getHRDetails,
-  updateHR,
-  deleteHR,
-  createJob,
-  getHRJobs,
-  getJobApplications,
-  updateJob,
-  deleteJob,
+  getHRProfile,
+  updateHRProfile,
+  addHRToCompany,
+  getCompanyHRs,
+  updateHRPermissions,
+  removeHRFromCompany,
 } from "../controllers/hrController";
-import { verifyHR } from "../middleware/authMiddleware";
+import {
+  authenticate,
+  requireRole,
+  includeHRProfile,
+} from "../middleware/authMiddleware";
 
 const hrRoutes = express.Router();
 
-// 🔹 HR Authentication
-hrRoutes.post("/login", hrLogin);
+// HR profile routes (requires HR role)
+hrRoutes.get("/profile", authenticate, requireRole("hr"), (req, res, next) => {
+  getHRProfile(req, res).catch(next);
+});
 
-// 🔹 HR Account Management
-hrRoutes.get("/profile", verifyHR, getHRDetails);
-hrRoutes.put("/profile", verifyHR, updateHR);
-hrRoutes.delete("/profile", verifyHR, deleteHR);
+hrRoutes.put("/profile", authenticate, requireRole("hr"), (req, res, next) => {
+  updateHRProfile(req, res).catch(next);
+});
 
-// 🔹 Job Management by HR
-hrRoutes.post("/job", verifyHR, createJob);
-hrRoutes.get("/jobs", verifyHR, getHRJobs);
-hrRoutes.get("/job/:jobId/applications", verifyHR, getJobApplications);
-hrRoutes.put("/job/:jobId", verifyHR, updateJob);
-hrRoutes.delete("/job/:jobId", verifyHR, deleteJob);
+// Company HR management routes (requires Company role or HR with permissions)
+hrRoutes.post(
+  "/company/:companyId",
+  authenticate,
+  requireRole(["company", "admin"]),
+  (req, res, next) => {
+    addHRToCompany(req, res).catch(next);
+  }
+);
+
+hrRoutes.get("/company/:companyId", authenticate, (req, res, next) => {
+  getCompanyHRs(req, res).catch(next);
+});
+
+hrRoutes.put(
+  "/:hrId/permissions",
+  authenticate,
+  requireRole(["company", "admin"]),
+  (req, res, next) => {
+    updateHRPermissions(req, res).catch(next);
+  }
+);
+
+hrRoutes.delete(
+  "/:hrId",
+  authenticate,
+  requireRole(["company", "admin"]),
+  (req, res, next) => {
+    removeHRFromCompany(req, res).catch(next);
+  }
+);
 
 export default hrRoutes;

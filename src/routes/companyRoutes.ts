@@ -1,34 +1,65 @@
 import express from "express";
 import {
-  createCompany,
-  getCompanyDetails,
-  updateCompany,
-  deleteCompany,
-  addHR,
-  getCompanyHRs,
-  removeHR,
+  getCompanyProfile,
+  getCompanyById,
+  getCompanyBySlug,
+  updateCompanyProfile,
   getCompanyJobs,
+  deleteCompanyAccount,
 } from "../controllers/companyController";
 import {
-  authenticateUser,
-  verifyCompany,
-  verifyUser,
+  authenticate,
+  requireRole,
+  includeCompanyProfile,
 } from "../middleware/authMiddleware";
 
 const companyRoutes = express.Router();
 
-// 🔹 Company Management
-companyRoutes.post("/signup", verifyUser, createCompany); // Create a new company
-companyRoutes.get("/:companyId", authenticateUser, getCompanyDetails); // Get company details
-companyRoutes.put("/:companyId", verifyCompany, updateCompany); // Update company details
-companyRoutes.delete("/:companyId", verifyCompany, deleteCompany); // Delete company
+// Company profile routes (requires company role)
+companyRoutes.get(
+  "/profile",
+  authenticate,
+  requireRole("company"),
+  (req, res, next) => {
+    getCompanyProfile(req, res).catch(next);
+  }
+);
 
-// 🔹 HR Management
-companyRoutes.post("/:companyId/hr", verifyCompany, addHR); // Add HR to company
-companyRoutes.get("/:companyId/hr", verifyCompany, getCompanyHRs); // Get all HRs in a company
-companyRoutes.delete("/hr/:hrId", verifyCompany, removeHR); // Remove HR from company
+companyRoutes.put(
+  "/profile",
+  authenticate,
+  requireRole("company"),
+  (req, res, next) => {
+    updateCompanyProfile(req, res).catch(next);
+  }
+);
 
-// 🔹 Job Management
-companyRoutes.get("/:companyId/jobs", verifyUser, getCompanyJobs); // Get all jobs for a company
+companyRoutes.delete(
+  "/account",
+  authenticate,
+  requireRole("company"),
+  (req, res, next) => {
+    deleteCompanyAccount(req, res).catch(next);
+  }
+);
+
+// Company jobs
+companyRoutes.get(
+  "/jobs",
+  authenticate,
+  requireRole("company"),
+  (req, res, next) => {
+    getCompanyJobs(req, res).catch(next);
+  }
+);
+
+// Public company routes
+companyRoutes.get("/id/:companyId", (req, res, next) => {
+  getCompanyById(req, res).catch(next);
+});
+
+companyRoutes.get("/slug/:slug", (req, res, next) => {
+  getCompanyBySlug(req, res).catch(next);
+});
 
 export default companyRoutes;
