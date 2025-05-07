@@ -1,11 +1,21 @@
 import { Schema, model, Document } from "mongoose";
 
-export interface IProfile extends Document {
+export interface IUserProfile extends Document {
   userId: Schema.Types.ObjectId;
-  bio?: string;
-  phone?: string;
-  location?: string;
   headline?: string;
+  bio?: string;
+  skills?: Schema.Types.ObjectId[];
+  savedJobs?: Schema.Types.ObjectId[];
+  resumes?: Schema.Types.ObjectId[];
+  applications?: Schema.Types.ObjectId[];
+  preferredCategories?: Schema.Types.ObjectId[];
+  preferredLocations?: string[];
+  jobSearchPreferences?: {
+    jobType?: string[];
+    salaryRange?: string;
+    remoteOnly?: boolean;
+    availableForHire?: boolean;
+  };
   experience?: {
     company: string;
     role: string;
@@ -46,18 +56,62 @@ export interface IProfile extends Document {
     imageUrl?: string;
     technologies?: string[];
   }[];
-  skills?: Schema.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-const profileSchema = new Schema<IProfile>(
+const userProfileSchema = new Schema<IUserProfile>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    bio: { type: String, default: "" },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
     headline: { type: String, default: "" },
-    phone: { type: String, default: "" },
-    location: { type: String, default: "" },
+    bio: { type: String, default: "" },
+    skills: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Skill",
+      },
+    ],
+    savedJobs: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Job",
+      },
+    ],
+    resumes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Resume",
+      },
+    ],
+    applications: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Application",
+      },
+    ],
+    preferredCategories: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "JobCategory",
+      },
+    ],
+    preferredLocations: [{ type: String }],
+    jobSearchPreferences: {
+      jobType: [
+        {
+          type: String,
+          enum: ["full-time", "part-time", "contract", "internship", "remote"],
+        },
+      ],
+      salaryRange: { type: String },
+      remoteOnly: { type: Boolean, default: false },
+      availableForHire: { type: Boolean, default: true },
+    },
     experience: [
       {
         company: String,
@@ -106,19 +160,16 @@ const profileSchema = new Schema<IProfile>(
         technologies: [String],
       },
     ],
-    skills: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Skill",
-      },
-    ],
   },
   { timestamps: true }
 );
 
-// Index for faster queries
-profileSchema.index({ userId: 1 });
-profileSchema.index({ skills: 1 });
-profileSchema.index({ "experience.company": 1 });
+// Indexes for faster queries
+// Removed duplicate index for userId;
+userProfileSchema.index({ skills: 1 });
+userProfileSchema.index({ preferredCategories: 1 });
 
-export const Profile = model<IProfile>("Profile", profileSchema);
+export const UserProfile = model<IUserProfile>(
+  "UserProfile",
+  userProfileSchema
+);

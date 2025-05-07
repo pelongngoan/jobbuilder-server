@@ -1,14 +1,22 @@
 import { Schema, model, Document } from "mongoose";
 import bcrypt from "bcrypt";
 
+export type UserRole = "user" | "admin" | "hr" | "company";
+
 export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
+  role: UserRole;
   isVerified: boolean;
-  savedJobs: Schema.Types.ObjectId[];
-  resumes: Schema.Types.ObjectId[];
-  appliedJobs: Schema.Types.ObjectId[];
+  profilePicture?: string;
+  phone?: string;
+  location?: string;
+  verificationToken?: string;
+  verificationTokenExpires?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
+  lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -25,10 +33,21 @@ const userSchema = new Schema<IUser>(
       trim: true,
     },
     password: { type: String, required: true },
+    role: {
+      type: String,
+      enum: ["user", "admin", "hr", "company"],
+      default: "user",
+      required: true,
+    },
     isVerified: { type: Boolean, default: false },
-    savedJobs: [{ type: Schema.Types.ObjectId, ref: "Job" }],
-    resumes: [{ type: Schema.Types.ObjectId, ref: "Resume" }],
-    appliedJobs: [{ type: Schema.Types.ObjectId, ref: "Application" }],
+    profilePicture: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    location: { type: String, default: "" },
+    verificationToken: { type: String },
+    verificationTokenExpires: { type: Date },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
+    lastLogin: { type: Date },
   },
   { timestamps: true }
 );
@@ -46,5 +65,10 @@ userSchema.methods.comparePassword = async function (
 ) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
+
+// Indexes for faster queries
+userSchema.index({ role: 1 });
+userSchema.index({ verificationToken: 1 });
+userSchema.index({ resetPasswordToken: 1 });
 
 export const User = model<IUser>("User", userSchema);

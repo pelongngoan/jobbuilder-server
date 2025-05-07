@@ -6,8 +6,10 @@
     "moduleResolution": "node",
     "sourceMap": true,
     "outDir": "dist",
-    "typeRoots": ["./@types", "./node_modules/@types"]
+    "typeRoots": ["./src/@types", "./node_modules/@types"],
+    "types": ["express", "node"]
   },
   "lib": ["es2015"],
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "files": ["src/@types/express/index.d.ts"]
 }
