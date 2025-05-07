@@ -3,18 +3,12 @@ import { Chat } from "../database/models/Chat";
 import { ChatMessage } from "../database/models/ChatMessage";
 import { chatUtils } from "../utils/chatUtils";
 
-interface AuthRequest extends Request {
-  user: {
-    _id: string;
-  };
-}
-
 export const chatController = {
   // Create a new chat session
-  async createChat(req: AuthRequest, res: Response) {
+  async createChat(req: Request, res: Response) {
     try {
       const { title } = req.body;
-      const userId = req.user._id;
+      const userId = req.userId;
 
       const chat = await Chat.create({
         userId,
@@ -55,9 +49,9 @@ What would you like to know? / Bạn muốn biết thêm về điều gì?`,
   },
 
   // Get all chats for a user
-  async getChats(req: AuthRequest, res: Response) {
+  async getChats(req: Request, res: Response) {
     try {
-      const userId = req.user._id;
+      const userId = req.userId;
       const chats = await Chat.find({ userId }).sort({ updatedAt: -1 });
       res.json(chats);
     } catch (error) {
@@ -79,11 +73,11 @@ What would you like to know? / Bạn muốn biết thêm về điều gì?`,
   },
 
   // Send a message and get job recommendations
-  async sendMessage(req: AuthRequest, res: Response) {
+  async sendMessage(req: Request, res: Response) {
     try {
       const { chatId } = req.params;
       const { content } = req.body;
-      const userId = req.user._id;
+      const userId = req.userId;
 
       // Save user message
       const userMessage = await ChatMessage.create({
@@ -97,11 +91,7 @@ What would you like to know? / Bạn muốn biết thêm về điều gì?`,
 
       // Analyze query and generate response
       const queryType = chatUtils.analyzeQuery(content);
-      const response = await chatUtils.generateResponse(
-        queryType,
-        content,
-        userId
-      );
+      const response = await chatUtils.generateResponse(queryType, content);
 
       // Create assistant response
       const assistantMessage = await ChatMessage.create({
