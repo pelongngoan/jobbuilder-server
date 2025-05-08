@@ -8,7 +8,6 @@ import { HRProfile } from "./HRProfile";
 import { Job } from "./Job";
 import { JobCategory } from "./JobCategory";
 import { Notification } from "./Notification";
-import { Profile } from "./Profile";
 import { Resume } from "./Resume";
 import { SavedJob } from "./SavedJobs";
 import { Settings } from "./Settings";
@@ -27,7 +26,6 @@ export {
   Job,
   JobCategory,
   Notification,
-  Profile,
   Resume,
   SavedJob,
   Settings,
