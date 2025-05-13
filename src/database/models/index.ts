@@ -4,16 +4,16 @@ import { Application } from "./Application";
 import { Chat } from "./Chat";
 import { ChatMessage } from "./ChatMessage";
 import { CompanyProfile } from "./CompanyProfile";
-import { HRProfile } from "./HRProfile";
 import { Job } from "./Job";
 import { JobCategory } from "./JobCategory";
 import { Notification } from "./Notification";
 import { Resume } from "./Resume";
 import { SavedJob } from "./SavedJobs";
-import { Settings } from "./Settings";
-import { Skill } from "./Skill";
 import { User } from "./User";
 import { UserProfile } from "./UserProfile";
+import { School } from "./School";
+import { Profile } from "./Profile";
+import { StaffProfile } from "./StaffProfile";
 
 // Export all models
 export {
@@ -22,14 +22,14 @@ export {
   Chat,
   ChatMessage,
   CompanyProfile,
-  HRProfile,
   Job,
   JobCategory,
   Notification,
   Resume,
   SavedJob,
-  Settings,
-  Skill,
   User,
   UserProfile,
+  School,
+  Profile,
+  StaffProfile,
 };

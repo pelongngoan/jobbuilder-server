@@ -8,7 +8,7 @@ export interface ISavedJob extends Document {
 
 const savedJobSchema = new Schema<ISavedJob>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "UserProfile", required: true },
     jobId: { type: Schema.Types.ObjectId, ref: "Job", required: true },
     savedAt: { type: Date, default: Date.now },
   },

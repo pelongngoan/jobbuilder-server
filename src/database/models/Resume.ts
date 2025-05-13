@@ -3,18 +3,16 @@ import { Schema, model, Document, Model } from "mongoose";
 export interface IResume extends Document {
   userId: Schema.Types.ObjectId;
   title: string;
-  type: "generated" | "uploaded"; // Whether the resume is created via a template or uploaded as a file
-  fileUrl?: string; // If the resume is uploaded, store the file URL
+  type: "generated" | "uploaded";
+  fileUrl?: string;
   isDefault?: boolean;
-  skills?: Schema.Types.ObjectId[]; // Reference to Skill documents
   content?: {
     personalInfo?: {
       fullName: string;
       email: string;
       phone?: string;
       address?: string;
-      linkedin?: string;
-      website?: string;
+      other?: { [key: string]: any };
     };
     summary?: string;
     workExperience?: {
@@ -24,29 +22,27 @@ export interface IResume extends Document {
       startDate?: Date;
       endDate?: Date;
       current?: boolean;
-      description?: string;
-      highlights?: string[];
+      other?: { [key: string]: any };
     }[];
     education?: {
-      institution: string;
-      degree?: string;
-      field?: string;
-      location?: string;
       startDate?: Date;
       endDate?: Date;
       current?: boolean;
+      schoolId?: Schema.Types.ObjectId;
+      degree?: string;
+      field?: string;
       gpa?: string;
-      highlights?: string[];
+      other?: { [key: string]: any };
     }[];
     skills?: {
-      category?: string;
+      category: string;
       items: string[];
     }[];
     certifications?: {
       name: string;
-      issuer?: string;
       date?: Date;
       url?: string;
+      issuer?: string;
     }[];
     languages?: {
       language: string;
@@ -58,14 +54,16 @@ export interface IResume extends Document {
       url?: string;
       technologies?: string[];
       highlights?: string[];
+      other?: { [key: string]: any };
     }[];
     references?: {
       name: string;
-      position?: string;
-      company?: string;
-      email?: string;
-      phone?: string;
+      position: string;
+      company: string;
+      email: string;
+      phone: string;
     }[];
+    other?: { title?: string; description?: string; [key: string]: any };
   };
   createdAt: Date;
   updatedAt: Date;
@@ -73,24 +71,22 @@ export interface IResume extends Document {
 
 const resumeSchema = new Schema<IResume>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true }, // Resume belongs to a user
-    title: { type: String, required: true, trim: true }, // Resume name (e.g., "Software Engineer Resume")
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    title: { type: String, required: true, trim: true },
     type: {
       type: String,
       enum: ["generated", "uploaded"],
       required: true,
     },
+    fileUrl: { type: String, default: "" },
     isDefault: { type: Boolean, default: false },
-    fileUrl: { type: String, default: "" }, // Store PDF file URL if uploaded
-    skills: [{ type: Schema.Types.ObjectId, ref: "Skill" }], // Reference to Skill documents
     content: {
       personalInfo: {
         fullName: { type: String },
         email: { type: String },
         phone: { type: String },
         address: { type: String },
-        linkedin: { type: String },
-        website: { type: String },
+        other: { type: Object },
       },
       summary: { type: String },
       workExperience: [
@@ -101,21 +97,19 @@ const resumeSchema = new Schema<IResume>(
           startDate: { type: Date },
           endDate: { type: Date },
           current: { type: Boolean, default: false },
-          description: { type: String },
-          highlights: [{ type: String }],
+          other: { type: Object },
         },
       ],
       education: [
         {
-          institution: { type: String },
+          schoolId: { type: Schema.Types.ObjectId, ref: "School" },
           degree: { type: String },
           field: { type: String },
-          location: { type: String },
           startDate: { type: Date },
           endDate: { type: Date },
           current: { type: Boolean, default: false },
           gpa: { type: String },
-          highlights: [{ type: String }],
+          other: { type: Object },
         },
       ],
       skills: [
@@ -145,6 +139,7 @@ const resumeSchema = new Schema<IResume>(
           url: { type: String },
           technologies: [{ type: String }],
           highlights: [{ type: String }],
+          other: { type: Object },
         },
       ],
       references: [
@@ -156,6 +151,7 @@ const resumeSchema = new Schema<IResume>(
           phone: { type: String },
         },
       ],
+      other: { type: Object },
     },
   },
   { timestamps: true }

@@ -37,7 +37,7 @@ const notificationSchema = new Schema<INotification>(
     },
     referenceModel: {
       type: String,
-      enum: ["Job", "Application", "Chat", "Company", "User"],
+      enum: ["Job", "Application", "Chat", "Company", "User", "StaffProfile"],
       required: false,
     },
   },

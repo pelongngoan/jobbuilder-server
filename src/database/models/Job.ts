@@ -6,25 +6,21 @@ export interface IJob extends Document {
   title: string;
   location: string;
   jobType: "full-time" | "part-time" | "contract" | "internship" | "remote";
-  salaryRange?: string;
-  salaryCurrency: string;
-  salaryType?: "hourly" | "monthly" | "yearly";
   description: string;
-  keyResponsibilities?: string[];
+  salaryFrom: number;
+  salaryTo: number;
+  salaryCurrency: string;
   benefits?: string[];
   category?: Schema.Types.ObjectId;
-  skills?: Schema.Types.ObjectId[];
+  skills?: string[];
   status?: "open" | "closed" | "draft";
   deadline?: Date;
   requirements?: string[];
-  contactEmail?: string;
-  contactPhone?: string;
-  logoCompany?: string;
-  companyName?: string;
-  companyWebsite?: string;
+  contacter: Schema.Types.ObjectId;
+  keyResponsibilities?: string[];
   applications: Schema.Types.ObjectId[];
-  other?: { title?: string; description?: string; [key: string]: any };
   experienceLevel?: "Entry" | "Mid" | "Senior" | "Executive";
+  other?: { title?: string; description?: string; [key: string]: any };
   viewCount: number;
   applicationCount: number;
   isFeatured: boolean;
@@ -44,13 +40,9 @@ const jobSchema = new Schema<IJob>(
       enum: ["full-time", "part-time", "contract", "internship", "remote"],
       required: true,
     },
-    salaryRange: { type: String, required: false },
     salaryCurrency: { type: String, required: true },
-    salaryType: {
-      type: String,
-      enum: ["hourly", "monthly", "yearly"],
-      required: false,
-    },
+    salaryFrom: { type: Number, required: true },
+    salaryTo: { type: Number, required: true },
     description: { type: String, required: true },
     keyResponsibilities: [{ type: String, required: false }],
     benefits: [{ type: String, required: false }],
@@ -61,23 +53,17 @@ const jobSchema = new Schema<IJob>(
     },
     deadline: { type: Date, required: false },
     requirements: [{ type: String, required: false }],
-    contactEmail: { type: String, required: false },
-    contactPhone: { type: String, required: false },
-    logoCompany: { type: String, required: false },
-    companyName: { type: String, required: false },
-    companyWebsite: { type: String, required: false },
+    contacter: {
+      type: Schema.Types.ObjectId,
+      ref: "HRProfile",
+      required: false,
+    },
     category: {
       type: Schema.Types.ObjectId,
       ref: "JobCategory",
       required: false,
     },
-    skills: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Skill",
-        required: false,
-      },
-    ],
+    skills: [{ type: String, required: false }],
     applications: [{ type: Schema.Types.ObjectId, ref: "Application" }],
     other: {
       title: { type: String, required: false },
@@ -125,9 +111,7 @@ jobSchema.pre("save", function (next) {
 
 // Indexes for faster searches
 jobSchema.index({ companyId: 1 });
-// Removed duplicate index for slug;
 jobSchema.index({ location: 1 });
-jobSchema.index({ skills: 1 });
 jobSchema.index({ category: 1 });
 jobSchema.index({ isFeatured: 1 });
 jobSchema.index({ status: 1 });
