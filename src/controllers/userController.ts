@@ -14,6 +14,17 @@ export const createProfile = async (req: Request, res: Response) => {
     const userId = req.userId;
     const { firstName, lastName, email, phone, profilePicture, address } =
       req.body;
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !phone ||
+      !profilePicture ||
+      !address
+    ) {
+      res.status(400).json({ message: "All fields are required" });
+      return;
+    }
     const existingProfile = await Profile.findOne({ userId });
 
     if (existingProfile) {
@@ -31,10 +42,15 @@ export const createProfile = async (req: Request, res: Response) => {
       address,
     });
 
-    const userProfile = await UserProfile.create({
-      userId,
-      profile: profile._id,
-    });
+    const userProfile = await UserProfile.findOneAndUpdate(
+      { userId },
+      { profile: profile._id },
+      { new: true }
+    );
+    if (!userProfile) {
+      res.status(404).json({ message: "User profile not found" });
+      return;
+    }
 
     res.status(201).json({
       success: true,

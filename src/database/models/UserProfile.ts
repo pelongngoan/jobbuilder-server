@@ -2,7 +2,7 @@ import { Schema, model, Document } from "mongoose";
 
 export interface IUserProfile extends Document {
   userId: Schema.Types.ObjectId;
-  profile: Schema.Types.ObjectId;
+  profile?: Schema.Types.ObjectId;
   savedJobs?: Schema.Types.ObjectId[];
   applications?: Schema.Types.ObjectId[];
   resumes?: Schema.Types.ObjectId[];
@@ -22,7 +22,7 @@ const userProfileSchema = new Schema<IUserProfile>(
     profile: {
       type: Schema.Types.ObjectId,
       ref: "Profile",
-      required: true,
+      required: false,
     },
     savedJobs: [
       {

@@ -1,11 +1,9 @@
 import { Request, Response } from "express";
 import { IJob, Job } from "../database/models/Job";
 import { Application } from "../database/models/Application";
-import { Skill } from "../database/models/Skill";
 import { JobCategory } from "../database/models/JobCategory";
 import fs from "fs";
 import csv from "csv-parser";
-import { Types } from "mongoose";
 // 🔹 Create a Job Post (HR Only)
 export const createJob = async (req: Request, res: Response) => {
   try {

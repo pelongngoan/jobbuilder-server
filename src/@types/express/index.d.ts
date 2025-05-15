@@ -1,8 +1,8 @@
 import { UserRole } from "../../database/models/User";
 import { IUserProfile } from "../../database/models/UserProfile";
 import { ICompanyProfile } from "../../database/models/CompanyProfile";
-import { IHRProfile } from "../../database/models/HRProfile";
 import { IAdminProfile } from "../../database/models/AdminProfile";
+import { IStaffProfile } from "../../database/models/StaffProfile";
 
 declare global {
   namespace Express {
@@ -10,12 +10,10 @@ declare global {
     interface Request {
       userId?: string;
       userRole?: UserRole;
-      companyId?: string;
-      userProfile?: IUserProfile;
-      companyProfile?: ICompanyProfile;
-      hrProfile?: IHRProfile;
-      adminProfile?: IAdminProfile;
-      hrId?: string;
+      userProfileId?: string;
+      companyProfileId?: string;
+      adminProfileId?: string;
+      staffProfileId?: string;
     }
   }
 }

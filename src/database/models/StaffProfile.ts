@@ -11,6 +11,7 @@ export interface IStaffProfile extends Document {
   companyId: Schema.Types.ObjectId;
   role: StaffRole;
   profile?: Schema.Types.ObjectId;
+  active?: boolean;
   jobPosts?: Schema.Types.ObjectId[];
   applications?: Schema.Types.ObjectId[];
   createdAt: Date;
@@ -23,6 +24,7 @@ const staffProfileSchema = new Schema<IStaffProfile>(
     profile: { type: Schema.Types.ObjectId, ref: "Profile", required: true },
     companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
     role: { type: String, enum: Object.values(StaffRole), required: true },
+    active: { type: Boolean, default: true },
     jobPosts: [{ type: Schema.Types.ObjectId, ref: "Job", required: false }],
     applications: [
       { type: Schema.Types.ObjectId, ref: "Application", required: false },

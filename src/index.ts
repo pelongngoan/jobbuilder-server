@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import cors from "cors";
 import path from "path";
+import { errorHandler } from "./middleware/errorMiddleware";
 // Import all models to ensure they are registered
 import "./database/models";
 
@@ -27,7 +28,16 @@ app.use(cors(corsOptions));
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+// Create uploads directory if it doesn't exist
+import fs from "fs";
+if (!fs.existsSync(path.join(process.cwd(), "uploads"))) {
+  fs.mkdirSync(path.join(process.cwd(), "uploads"), { recursive: true });
+}
+
 app.use(router);
+
+// Error handling middleware
+app.use(errorHandler);
 
 // Connect to MongoDB
 connectDB();

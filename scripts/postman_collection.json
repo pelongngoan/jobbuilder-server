@@ -662,6 +662,109 @@
           }
         },
         {
+          "name": "Get All HRs (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hr/all?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["hr", "all"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search HRs (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hr/search?query=manager&companyId=company_id_here&department=HR&position=Director&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["hr", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "manager"
+                },
+                {
+                  "key": "companyId",
+                  "value": "company_id_here"
+                },
+                {
+                  "key": "department",
+                  "value": "HR"
+                },
+                {
+                  "key": "position",
+                  "value": "Director"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Import HRs From CSV",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{company_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "csvFile",
+                  "type": "file",
+                  "src": "/path/to/hrs.csv"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/hr/company/:companyId/import",
+              "host": ["{{base_url}}"],
+              "path": ["hr", "company", ":companyId", "import"],
+              "variable": [
+                {
+                  "key": "companyId",
+                  "value": "company_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Update HR Permissions",
           "request": {
             "method": "PUT",
@@ -841,6 +944,33 @@
           }
         },
         {
+          "name": "Import Skills From CSV",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "csvFile",
+                  "type": "file",
+                  "src": "/path/to/skills.csv"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/skills/import",
+              "host": ["{{base_url}}"],
+              "path": ["skills", "import"]
+            }
+          }
+        },
+        {
           "name": "Update Skill (Admin/HR)",
           "request": {
             "method": "PUT",
@@ -962,6 +1092,59 @@
                   "value": "software-development"
                 }
               ]
+            }
+          }
+        },
+        {
+          "name": "Search Job Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/job-categories/search?query=development&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["job-categories", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "development"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Import Job Categories From CSV",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "csvFile",
+                  "type": "file",
+                  "src": "/path/to/categories.csv"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/job-categories/import",
+              "host": ["{{base_url}}"],
+              "path": ["job-categories", "import"]
             }
           }
         },
@@ -2119,6 +2302,62 @@
                 {
                   "key": "slug",
                   "value": "acme-corporation"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/companies/all?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["companies", "all"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/companies/search?query=tech&industry=Technology&location=New York&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["companies", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "tech"
+                },
+                {
+                  "key": "industry",
+                  "value": "Technology"
+                },
+                {
+                  "key": "location",
+                  "value": "New York"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
                 }
               ]
             }

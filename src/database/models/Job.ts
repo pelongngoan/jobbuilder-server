@@ -55,7 +55,7 @@ const jobSchema = new Schema<IJob>(
     requirements: [{ type: String, required: false }],
     contacter: {
       type: Schema.Types.ObjectId,
-      ref: "HRProfile",
+      ref: "StaffProfile",
       required: false,
     },
     category: {

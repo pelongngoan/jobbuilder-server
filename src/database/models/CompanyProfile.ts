@@ -2,7 +2,7 @@ import { Schema, model, Document } from "mongoose";
 
 export interface ICompanyProfile extends Document {
   userId: Schema.Types.ObjectId;
-  companyName: string;
+  companyName?: string;
   email?: string;
   logo?: string;
   wallPaper?: string;
@@ -10,12 +10,13 @@ export interface ICompanyProfile extends Document {
   description?: string;
   address?: string;
   phone?: string;
-  hrMembers?: Schema.Types.ObjectId[];
-  jobPosts?: Schema.Types.ObjectId[];
-  applications?: Schema.Types.ObjectId[];
-  slug: string;
-  createdAt: Date;
-  updatedAt: Date;
+  domain?: string;
+  // hrMembers?: Schema.Types.ObjectId[];
+  // jobPosts?: Schema.Types.ObjectId[];
+  // applications?: Schema.Types.ObjectId[];
+  slug?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const companyProfileSchema = new Schema<ICompanyProfile>(
@@ -28,22 +29,21 @@ const companyProfileSchema = new Schema<ICompanyProfile>(
     },
     companyName: {
       type: String,
-      required: true,
       trim: true,
     },
     email: { type: String, default: "" },
+    domain: { type: String, default: "" },
     phone: { type: String, default: "" },
     address: { type: String, default: "" },
     website: { type: String, default: "" },
     description: { type: String, default: "" },
     logo: { type: String, default: "" },
     wallPaper: { type: String, default: "" },
-    hrMembers: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    jobPosts: [{ type: Schema.Types.ObjectId, ref: "Job" }],
-    applications: [{ type: Schema.Types.ObjectId, ref: "Application" }],
+    // hrMembers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    // jobPosts: [{ type: Schema.Types.ObjectId, ref: "Job" }],
+    // applications: [{ type: Schema.Types.ObjectId, ref: "Application" }],
     slug: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
     },

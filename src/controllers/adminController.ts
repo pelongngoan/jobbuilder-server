@@ -95,10 +95,10 @@ export const getUserDetails = async (req: Request, res: Response) => {
     let profile;
     if (user.role === "admin") {
       profile = await AdminProfile.findOne({ userId: user._id });
-    } else if (user.role === "hr") {
+    } else if (user.role === "staff") {
       // Assuming you have an HRProfile model
-      profile = await import("../database/models/HRProfile").then((module) =>
-        module.HRProfile.findOne({ userId: user._id })
+      profile = await import("../database/models/StaffProfile").then((module) =>
+        module.StaffProfile.findOne({ userId: user._id })
       );
     } else if (user.role === "company") {
       // Assuming you have a CompanyProfile model
@@ -220,19 +220,19 @@ export const deleteUser = async (req: Request, res: Response) => {
     }
 
     // Delete associated profile based on user role
-    if (user.role === "admin") {
-      await AdminProfile.findOneAndDelete({ userId: user._id });
-    } else if (user.role === "hr") {
-      // Assuming you have an HRProfile model
-      await import("../database/models/HRProfile").then((module) =>
-        module.HRProfile.findOneAndDelete({ userId: user._id })
-      );
-    } else if (user.role === "company") {
-      // Assuming you have a CompanyProfile model
-      await import("../database/models/CompanyProfile").then((module) =>
-        module.CompanyProfile.findOneAndDelete({ userId: user._id })
-      );
-    }
+    // if (user.role === "admin") {
+    //   await AdminProfile.findOneAndDelete({ userId: user._id });
+    // } else if (user.role === "hr") {
+    //   // Assuming you have an HRProfile model
+    //   await import("../database/models/HRProfile").then((module) =>
+    //     module.HRProfile.findOneAndDelete({ userId: user._id })
+    //   );
+    // } else if (user.role === "company") {
+    //   // Assuming you have a CompanyProfile model
+    //   await import("../database/models/CompanyProfile").then((module) =>
+    //     module.CompanyProfile.findOneAndDelete({ userId: user._id })
+    //   );
+    // }
 
     res.status(200).json({
       success: true,

@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import {
   getHRProfile,
   updateHRProfile,
@@ -6,12 +7,27 @@ import {
   getCompanyHRs,
   updateHRPermissions,
   removeHRFromCompany,
-} from "../controllers/hrController";
+  getAllHRs,
+  searchHRs,
+  importHRsFromCSV,
+} from "../controllers/staffController";
 import {
   authenticate,
   requireRole,
   includeHRProfile,
 } from "../middleware/authMiddleware";
+
+// Storage config for CSV uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const upload = multer({ storage });
 
 const hrRoutes = express.Router();
 
@@ -34,9 +50,33 @@ hrRoutes.post(
   }
 );
 
+hrRoutes.post(
+  "/company/:companyId/import",
+  authenticate,
+  requireRole(["company", "admin"]),
+  upload.single("csvFile"),
+  (req, res, next) => {
+    importHRsFromCSV(req, res).catch(next);
+  }
+);
+
 hrRoutes.get("/company/:companyId", authenticate, (req, res, next) => {
   getCompanyHRs(req, res).catch(next);
 });
+
+// Admin routes for managing all HRs
+hrRoutes.get("/all", authenticate, requireRole("admin"), (req, res, next) => {
+  getAllHRs(req, res).catch(next);
+});
+
+hrRoutes.get(
+  "/search",
+  authenticate,
+  requireRole("admin"),
+  (req, res, next) => {
+    searchHRs(req, res).catch(next);
+  }
+);
 
 hrRoutes.put(
   "/:hrId/permissions",
