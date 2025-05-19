@@ -2,7 +2,6 @@ import { Schema, model, Document } from "mongoose";
 
 export interface IJob extends Document {
   companyId: Schema.Types.ObjectId;
-  hrId: Schema.Types.ObjectId;
   title: string;
   location: string;
   jobType: "full-time" | "part-time" | "contract" | "internship" | "remote";
@@ -16,7 +15,8 @@ export interface IJob extends Document {
   status?: "open" | "closed" | "draft";
   deadline?: Date;
   requirements?: string[];
-  contacter: Schema.Types.ObjectId;
+  contacterId: Schema.Types.ObjectId;
+  contacterEmail: string;
   keyResponsibilities?: string[];
   applications: Schema.Types.ObjectId[];
   experienceLevel?: "Entry" | "Mid" | "Senior" | "Executive";
@@ -31,8 +31,11 @@ export interface IJob extends Document {
 
 const jobSchema = new Schema<IJob>(
   {
-    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
-    hrId: { type: Schema.Types.ObjectId, ref: "HR", required: true },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "CompanyProfile",
+      required: true,
+    },
     title: { type: String, required: true, trim: true },
     location: { type: String, required: true },
     jobType: {
@@ -53,9 +56,13 @@ const jobSchema = new Schema<IJob>(
     },
     deadline: { type: Date, required: false },
     requirements: [{ type: String, required: false }],
-    contacter: {
+    contacterId: {
       type: Schema.Types.ObjectId,
       ref: "StaffProfile",
+      required: false,
+    },
+    contacterEmail: {
+      type: String,
       required: false,
     },
     category: {

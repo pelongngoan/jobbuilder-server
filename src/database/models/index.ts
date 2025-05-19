@@ -1,5 +1,4 @@
 // Import all models to ensure they are registered with MongoDB
-import { AdminProfile } from "./AdminProfile";
 import { Application } from "./Application";
 import { Chat } from "./Chat";
 import { ChatMessage } from "./ChatMessage";
@@ -17,7 +16,6 @@ import { StaffProfile } from "./StaffProfile";
 
 // Export all models
 export {
-  AdminProfile,
   Application,
   Chat,
   ChatMessage,

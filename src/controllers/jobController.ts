@@ -4,11 +4,67 @@ import { Application } from "../database/models/Application";
 import { JobCategory } from "../database/models/JobCategory";
 import fs from "fs";
 import csv from "csv-parser";
+import { StaffProfile } from "../database/models/StaffProfile";
+import { CompanyProfile } from "../database/models/CompanyProfile";
+import { Profile } from "../database/models/Profile";
 // 🔹 Create a Job Post (HR Only)
 export const createJob = async (req: Request, res: Response) => {
   try {
-    // Generate slug from title
-    const title = req.body.title;
+    let companyId = req.companyProfileId;
+    const staffProfileId = req.staffProfileId;
+    const {
+      title,
+      location,
+      jobType,
+      description,
+      salaryFrom,
+      salaryTo,
+      salaryCurrency,
+      benefits,
+      category,
+      skills,
+      status,
+      deadline,
+      requirements,
+      contacterId,
+      contacterEmail,
+      keyResponsibilities,
+      experienceLevel,
+      other,
+      isFeatured,
+    } = req.body;
+    if (
+      !title &&
+      !location &&
+      !jobType &&
+      !description &&
+      !salaryFrom &&
+      !salaryTo &&
+      !salaryCurrency &&
+      !benefits &&
+      !category &&
+      !skills &&
+      !status &&
+      !deadline &&
+      !requirements &&
+      !contacterEmail &&
+      !keyResponsibilities &&
+      !experienceLevel &&
+      !other &&
+      !isFeatured
+    ) {
+      res.status(400).json({ message: "All fields are required" });
+      return;
+    }
+    console.log(req.body);
+    if (!companyId) {
+      const company = await StaffProfile.findById(staffProfileId);
+      if (!company) {
+        res.status(400).json({ message: "Company not found" });
+        return;
+      }
+      companyId = company.companyId.toString();
+    }
     const slug =
       title
         .toLowerCase()
@@ -16,14 +72,41 @@ export const createJob = async (req: Request, res: Response) => {
         .replace(/[^\w\-]+/g, "") +
       "-" +
       Date.now().toString().slice(-4);
+    const profile = await Profile.findOne({ email: contacterEmail });
+    const contacter = await StaffProfile.findOne({
+      profile: profile?._id,
+    });
+    if (!contacter) {
+      res.status(400).json({ message: "Contacter not found" });
+      return;
+    }
 
+    if (contacter.role !== "hr") {
+      res.status(400).json({ message: "Contacter is not an HR" });
+      return;
+    }
     // Create new job
     const newJob = new Job({
-      ...req.body,
+      companyId,
+      title,
+      location,
+      jobType,
+      description,
+      salaryFrom,
+      salaryTo,
+      salaryCurrency,
+      benefits,
+      category,
+      skills,
+      status,
+      deadline,
+      requirements,
+      contacterId,
+      keyResponsibilities,
+      experienceLevel,
+      other,
+      isFeatured,
       slug,
-      viewCount: 0,
-      applicationCount: 0,
-      isFeatured: req.body.isFeatured || false,
     });
 
     await newJob.save();
@@ -39,77 +122,128 @@ export const createJob = async (req: Request, res: Response) => {
 
 export const uploadJobsFromCSV = async (req: Request, res: Response) => {
   const file = req.file;
+  const companyId = req.companyProfileId;
+  console.log("Request body:", req.body);
 
   if (!file) {
     res.status(400).json({ message: "No file uploaded" });
     return;
   }
 
+  if (!companyId) {
+    fs.unlinkSync(file.path);
+    res.status(400).json({ message: "Company ID is required" });
+    return;
+  }
+
+  const companyProfile = await CompanyProfile.findById(companyId);
+  if (!companyProfile) {
+    fs.unlinkSync(file.path);
+    res.status(404).json({ message: "Company not found" });
+    return;
+  }
+
   const jobs: Partial<IJob>[] = [];
+  const successfulJobs: any[] = [];
+  const failedJobs: any[] = [];
 
   try {
     fs.createReadStream(file.path)
       .pipe(csv())
-      .on("data", async (row) => {
-        // Process category - look up or create category by name if needed
-        let categoryId = row.category;
-        if (row.categoryName && !row.category) {
-          const category = await JobCategory.findOne({
-            name: row.categoryName,
+      .on("data", (row) => {
+        try {
+          // Convert CSV row to job object
+          const job = {
+            title: row.Title,
+            description: row.Description,
+            location: row.Location,
+            jobType: row["Job Type"],
+            experienceLevel: row["Experience Level"],
+            salaryFrom: parseFloat(row["Salary From"]),
+            salaryTo: parseFloat(row["Salary To"]),
+            salaryCurrency: row["Salary Currency"],
+            skills: row.Skills.split(";"),
+            status: row.Status,
+            benefits: row.Benefits.split(";"),
+            contacterEmail: row["Contact Email"],
+            isFeatured: row["Is Featured"].toLowerCase() === "true",
+            requirements: row.Requirements.split(";"),
+            keyResponsibilities: row["Key Responsibilities"].split(";"),
+            category: row.Category,
+            deadline: new Date(row.Deadline),
+            companyId: companyId,
+            slug: `${row.Title.toLowerCase()
+              .replace(/\s+/g, "-")
+              .replace(/[^\w\-]+/g, "")}-${Date.now().toString().slice(-4)}`,
+          };
+          jobs.push(job);
+        } catch (err) {
+          console.error("Error processing row:", err);
+          failedJobs.push({
+            row,
+            error: err instanceof Error ? err.message : "Unknown error",
           });
-          if (category) {
-            categoryId = category._id;
+        }
+      })
+      .on("end", async () => {
+        // Process all jobs
+        for (const job of jobs) {
+          try {
+            // Validate and get contacter information
+            const profile = await Profile.findOne({
+              email: job.contacterEmail,
+            });
+            const contacter = await StaffProfile.findOne({
+              profile: profile?._id,
+            });
+
+            if (!contacter) {
+              throw new Error(
+                `Contacter not found for email: ${job.contacterEmail}`
+              );
+            }
+
+            if (contacter.role !== "hr") {
+              throw new Error(`Contacter ${job.contacterEmail} is not an HR`);
+            }
+
+            // Create the job with contacter information
+            const newJob = await Job.create({
+              ...job,
+              contacterId: contacter._id,
+            });
+
+            successfulJobs.push(newJob);
+          } catch (err) {
+            failedJobs.push({
+              job,
+              error: err instanceof Error ? err.message : "Unknown error",
+            });
           }
         }
 
-        // Generate slug from title
-        const slug =
-          row.title
-            .toLowerCase()
-            .replace(/\s+/g, "-")
-            .replace(/[^\w\-]+/g, "") +
-          "-" +
-          Date.now().toString().slice(-4);
+        // Clean up temp file
+        fs.unlinkSync(file.path);
 
-        jobs.push({
-          companyId: req.body.companyId,
-          hrId: req.body.hrId,
-          title: row.title,
-          location: row.location,
-          jobType: row.jobType,
-          salaryRange: row.salaryRange,
-          salaryCurrency: row.salaryCurrency || "USD",
-          salaryType: row.salaryType,
-          description: row.description,
-          keyResponsibilities: row.keyResponsibilities?.split("|"),
-          benefits: row.benefits?.split("|"),
-          category: categoryId,
-          status: row.status || "open",
-          deadline: row.deadline ? new Date(row.deadline) : undefined,
-          requirements: row.requirements?.split("|"),
-          contactEmail: row.contactEmail,
-          contactPhone: row.contactPhone,
-          logoCompany: row.logoCompany,
-          companyName: row.companyName,
-          companyWebsite: row.companyWebsite,
-          experienceLevel: row.experienceLevel,
-          applications: [],
-          viewCount: 0,
-          applicationCount: 0,
-          isFeatured: row.isFeatured === "true",
-          slug,
+        res.status(201).json({
+          success: true,
+          message: "Jobs imported",
+          data: {
+            successCount: successfulJobs.length,
+            failedCount: failedJobs.length,
+            jobs: successfulJobs,
+            errors: failedJobs,
+          },
         });
-      })
-      .on("end", async () => {
-        await Job.insertMany(jobs);
-        fs.unlinkSync(file.path); // Clean up the temp file
-        res
-          .status(201)
-          .json({ message: "Jobs imported successfully", count: jobs.length });
       });
   } catch (error) {
     console.error("CSV import error:", error);
+    if (file && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+
     res.status(500).json({
+      success: false,
       message: "CSV import error",
       error: error instanceof Error ? error.message : "Unknown error",
     });

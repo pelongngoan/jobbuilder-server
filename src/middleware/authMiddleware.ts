@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { User, UserRole } from "../database/models/User";
 import { CompanyProfile } from "../database/models/CompanyProfile";
-import { AdminProfile } from "../database/models/AdminProfile";
 import { UserProfile } from "../database/models/UserProfile";
 import { StaffProfile } from "../database/models/StaffProfile";
 
@@ -50,11 +49,6 @@ export const authenticate = async (
         profile = await StaffProfile.findOne({ userId: user._id });
         req.staffProfileId = profile?._id.toString();
         break;
-      case "admin":
-        req.userRole = "admin";
-        profile = await AdminProfile.findOne({ userId: user._id });
-        req.adminProfileId = profile?._id.toString();
-        break;
       case "company":
         req.userRole = "company";
         profile = await CompanyProfile.findOne({ userId: user._id });
@@ -77,7 +71,6 @@ export const requireRole = (roles: UserRole | UserRole[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const allowedRoles = Array.isArray(roles) ? roles : [roles];
-
       if (!req.userRole || !allowedRoles.includes(req.userRole)) {
         res.status(403).json({
           message: `Access denied. Required role: ${allowedRoles.join(" or ")}`,
@@ -173,59 +166,59 @@ export const requireRole = (roles: UserRole | UserRole[]) => {
 // };
 
 // HR verification middleware - combines authentication and HR role verification
-export const verifyHR = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    // 1. First authenticate the user
-    const token = req.header("Authorization")?.split(" ")[1];
+// export const verifyHR = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   try {
+//     // 1. First authenticate the user
+//     const token = req.header("Authorization")?.split(" ")[1];
 
-    if (!token) {
-      res.status(401).json({ message: "Unauthorized - No token provided" });
-      return;
-    }
+//     if (!token) {
+//       res.status(401).json({ message: "Unauthorized - No token provided" });
+//       return;
+//     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as JwtPayload;
+//     const decoded = jwt.verify(
+//       token,
+//       process.env.JWT_SECRET as string
+//     ) as JwtPayload;
 
-    // Find the user
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      res.status(401).json({ message: "Unauthorized - User not found" });
-      return;
-    }
+//     // Find the user
+//     const user = await User.findById(decoded.userId);
+//     if (!user) {
+//       res.status(401).json({ message: "Unauthorized - User not found" });
+//       return;
+//     }
 
-    // Add user info to request
-    req.userId = user._id.toString();
-    req.userRole = user.role;
+//     // Add user info to request
+//     req.userId = user._id.toString();
+//     req.userRole = user.role;
 
-    // 2. Check if user has HR role
-    if (user.role !== "staff") {
-      res.status(403).json({
-        message: "Access denied. HR role required",
-      });
-      return;
-    }
+//     // 2. Check if user has HR role
+//     if (user.role !== "staff") {
+//       res.status(403).json({
+//         message: "Access denied. HR role required",
+//       });
+//       return;
+//     }
 
-    // 3. Get HR profile
-    const staffProfile = await StaffProfile.findOne({ userId: req.userId });
-    if (!staffProfile) {
-      res.status(404).json({ message: "Staff profile not found" });
-      return;
-    }
+//     // 3. Get HR profile
+//     const staffProfile = await StaffProfile.findOne({ userId: req.userId });
+//     if (!staffProfile) {
+//       res.status(404).json({ message: "Staff profile not found" });
+//       return;
+//     }
 
-    req.staffProfile = staffProfile;
-    req.companyId = staffProfile.companyId.toString();
+//     req.staffProfile = staffProfile;
+//     req.companyId = staffProfile.companyId.toString();
 
-    next();
-  } catch (error) {
-    res.status(403).json({ message: "Authentication failed", error });
-  }
-};
+//     next();
+//   } catch (error) {
+//     res.status(403).json({ message: "Authentication failed", error });
+//   }
+// };
 
 // User verification middleware - just authenticates any user
 export const verifyUser = async (

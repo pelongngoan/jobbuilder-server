@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { Job } from "../database/models/Job";
 import { User } from "../database/models/User";
 import { CompanyProfile } from "../database/models/CompanyProfile";
-import { StaffProfile } from "../database/models";
+import { Profile, StaffProfile } from "../database/models";
 import fs from "fs";
 import csv from "csv-parser";
 
@@ -53,28 +53,33 @@ export const createCompanyProfile = async (req: Request, res: Response) => {
 export const updateCompanyProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.userId;
-    const {
-      companyName,
-      phone,
-      logo,
-      website,
-      wallPaper,
-      description,
-      address,
-    } = req.body;
+    const files = req.files as {
+      [fieldname: string]: Express.Multer.File[];
+    };
+
+    const logo = files?.logo?.[0]?.filename;
+    const wallPaper = files?.wallPaper?.[0]?.filename;
+    const { companyName, phone, website, description, address, email, domain } =
+      req.body;
+
+    // Create URLs for the files
+    const logoUrl = logo ? `/uploads/${logo}` : undefined;
+    const wallPaperUrl = wallPaper ? `/uploads/${wallPaper}` : undefined;
+
     const companyProfile = await CompanyProfile.findOneAndUpdate(
       { userId },
       {
         companyName,
+        email,
+        domain,
         phone,
         address,
-        logo,
+        ...(logoUrl && { logo: logoUrl }),
+        ...(wallPaperUrl && { wallPaper: wallPaperUrl }),
         website,
-        wallPaper,
         description,
         slug: companyName.toLowerCase().replace(/ /g, "-"),
         updatedAt: new Date(),
-        createdAt: new Date(),
       },
       { new: true }
     );
@@ -86,6 +91,7 @@ export const updateCompanyProfile = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "Company profile updated successfully",
+      data: companyProfile,
     });
   } catch (error) {
     console.error("Update company profile error:", error);
@@ -156,18 +162,31 @@ export const getCompanyBySlug = async (req: Request, res: Response) => {
 };
 export const getCompanyJobs = async (req: Request, res: Response) => {
   try {
-    const userId = req.userId;
+    const companyId = req.query.companyId as string;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const companyProfile = await CompanyProfile.findOne({ userId });
+    if (!companyId) {
+      res.status(400).json({ message: "Company ID is required" });
+      return;
+    }
+
+    const companyProfile = await CompanyProfile.findById(companyId);
     if (!companyProfile) {
-      return res.status(404).json({ message: "Company profile not found" });
+      res.status(404).json({ message: "Company profile not found" });
+      return;
     }
 
     const jobs = await Job.find({ companyId: companyProfile._id })
       .populate("category")
+      .populate({
+        path: "contacterId",
+        populate: {
+          path: "profile",
+          select: "email firstName lastName",
+        },
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -177,10 +196,44 @@ export const getCompanyJobs = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       data: jobs,
-      total,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error("Get company jobs error:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+export const getHrJobs = async (req: Request, res: Response) => {
+  try {
+    const hrId = req.params.hrId;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const jobs = await Job.find({ contacterId: hrId })
+      .populate("category")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    if (!jobs) {
+      res.status(404).json({ message: "Jobs not found" });
+      return;
+    }
+    const total = await Job.countDocuments({ contacterId: hrId });
+
+    res.status(200).json({
+      success: true,
+      data: jobs,
+      total,
+    });
+  } catch (error) {
+    console.error("Get hr jobs error:", error);
     res.status(500).json({ message: "Server error", error });
   }
 };
@@ -373,6 +426,7 @@ export const createCompanyStaff = async (req: Request, res: Response) => {
 
     const nameParts = fullName.trim().toLowerCase().split(" ");
     const lastName = nameParts[nameParts.length - 1];
+    const firstName = nameParts.slice(0, -1).join(" ");
     const initials = nameParts
       .slice(0, -1)
       .map((word) => word[0])
@@ -397,13 +451,25 @@ export const createCompanyStaff = async (req: Request, res: Response) => {
       isVerified: true,
     });
 
+    const profile = await Profile.create({
+      userId: user._id,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      phone: "",
+      address: "",
+      profilePicture: "",
+    });
+    await profile.save();
+    console.log(profile._id);
     const staff = await StaffProfile.create({
       userId: user._id,
       companyId: companyProfile._id,
+      profile: profile._id,
       role,
       active,
     });
-
+    await staff.save();
     res.status(201).json({
       success: true,
       message: "Staff created successfully",
@@ -557,8 +623,7 @@ export const updateCompanyStaff = async (req: Request, res: Response) => {
 };
 export const updateCompanyStaffActive = async (req: Request, res: Response) => {
   try {
-    const { staffIds } = req.body;
-    const { active } = req.body;
+    const { staffIds, active } = req.body;
     const staff = await StaffProfile.updateMany(
       { _id: { $in: staffIds } },
       { active }

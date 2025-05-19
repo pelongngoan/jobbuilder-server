@@ -21,8 +21,12 @@ export interface IStaffProfile extends Document {
 const staffProfileSchema = new Schema<IStaffProfile>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    profile: { type: Schema.Types.ObjectId, ref: "Profile", required: true },
-    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
+    profile: { type: Schema.Types.ObjectId, ref: "Profile", required: false },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "CompanyProfile",
+      required: true,
+    },
     role: { type: String, enum: Object.values(StaffRole), required: true },
     active: { type: Boolean, default: true },
     jobPosts: [{ type: Schema.Types.ObjectId, ref: "Job", required: false }],

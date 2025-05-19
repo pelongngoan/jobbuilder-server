@@ -5,8 +5,8 @@ export interface IProfile extends Document {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
-  address: string;
+  phone?: string;
+  address?: string;
   profilePicture?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -19,8 +19,8 @@ const profileSchema = new Schema<IProfile>(
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     email: { type: String, required: true },
-    phone: { type: String, required: true },
-    address: { type: String, required: true },
+    phone: { type: String, required: false },
+    address: { type: String, required: false },
   },
   { timestamps: true }
 );

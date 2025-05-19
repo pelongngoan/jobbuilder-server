@@ -8,11 +8,7 @@ import {
   changeUserRole,
   deleteUser,
 } from "../controllers/adminController";
-import {
-  authenticate,
-  requireRole,
-  includeAdminProfile,
-} from "../middleware/authMiddleware";
+import { authenticate, requireRole } from "../middleware/authMiddleware";
 
 const adminRoutes = express.Router();
 

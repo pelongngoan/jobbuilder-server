@@ -1,7 +1,6 @@
 import { UserRole } from "../../database/models/User";
 import { IUserProfile } from "../../database/models/UserProfile";
 import { ICompanyProfile } from "../../database/models/CompanyProfile";
-import { IAdminProfile } from "../../database/models/AdminProfile";
 import { IStaffProfile } from "../../database/models/StaffProfile";
 
 declare global {
@@ -12,7 +11,6 @@ declare global {
       userRole?: UserRole;
       userProfileId?: string;
       companyProfileId?: string;
-      adminProfileId?: string;
       staffProfileId?: string;
     }
   }

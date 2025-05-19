@@ -1,5 +1,0 @@
-﻿title;location;jobType;salaryRange;salaryCurrency;salaryType;description;keyResponsibilities;benefits;category;status;deadline;requirements;contactEmail;contactPhone;logoCompany;companyName;companyWebsite
-Job 1;Location 1;full-time;100-200;USD;monthly;description 1;"""Build APIs|Maintain DB""";"""Health Insurance|Remote Work""";category;open;2025-08-01;requirements;contactEmail@gmail.com;968499777;logoCompany;companyName;companyWebsite
-Job 2;Location 2;full-time;100-201;USD;monthly;description 2;"""Build APIs|Maintain DB""";"""Health Insurance|Remote Work""";category;open;2025-08-02;requirements;contactEmail@gmail.com;968499778;logoCompany;companyName;companyWebsite
-Job 3;Location 3;full-time;100-202;USD;monthly;description 3;"""Build APIs|Maintain DB""";"""Health Insurance|Remote Work""";category;open;2025-08-03;requirements;contactEmail@gmail.com;968499779;logoCompany;companyName;companyWebsite
-Job 4;Location 4;full-time;100-203;USD;monthly;description 4;"""Build APIs|Maintain DB""";"""Health Insurance|Remote Work""";category;open;2025-08-04;requirements;contactEmail@gmail.com;968499780;logoCompany;companyName;companyWebsite

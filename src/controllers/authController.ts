@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 import { User } from "../database/models/User";
 import { UserProfile } from "../database/models/UserProfile";
 import { CompanyProfile } from "../database/models/CompanyProfile";
-import { AdminProfile } from "../database/models/AdminProfile";
 import { emailService } from "../utils/emailService";
 import { StaffProfile } from "../database/models";
 
@@ -121,13 +120,14 @@ export const login = async (req: Request, res: Response) => {
         profile = await StaffProfile.findOne({ userId: user._id });
         break;
       case "admin":
-        profile = await AdminProfile.findOne({ userId: user._id });
         break;
     }
     res.status(200).json({
       success: true,
       token,
-      data: profile,
+      id: user._id,
+      role: user.role,
+      useProfileId: profile?._id || null,
     });
   } catch (error) {
     console.error("Login error:", error);

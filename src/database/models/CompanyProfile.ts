@@ -11,9 +11,6 @@ export interface ICompanyProfile extends Document {
   address?: string;
   phone?: string;
   domain?: string;
-  // hrMembers?: Schema.Types.ObjectId[];
-  // jobPosts?: Schema.Types.ObjectId[];
-  // applications?: Schema.Types.ObjectId[];
   slug?: string;
   createdAt?: Date;
   updatedAt?: Date;

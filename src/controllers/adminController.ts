@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { User } from "../database/models/User";
-import { AdminProfile } from "../database/models/AdminProfile";
 import * as bcrypt from "bcrypt";
 
 // Get admin profile

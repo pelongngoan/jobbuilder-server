@@ -1,262 +1,147 @@
 import { Request, Response } from "express";
-import { Job, Profile, StaffProfile } from "../database/models";
+import {
+  CompanyProfile,
+  Job,
+  Profile,
+  StaffProfile,
+  User,
+} from "../database/models";
 
-export const getHRProfile = async (req: Request, res: Response) => {
+export const getAllStaff = async (req: Request, res: Response) => {
   try {
-    const userId = req.userId;
+    const companyId = req.companyProfileId;
+    if (!companyId) {
+      res.status(400).json({ message: "Company ID is required" });
+      return;
+    }
+    const staff = await StaffProfile.find({ companyId })
+      .populate("profile")
+      .populate("jobPosts")
+      .populate("applications")
+      .populate("userId");
+    if (!staff) {
+      res.status(404).json({ message: "Staff not found" });
+      return;
+    }
+    res.status(200).json({
+      success: true,
+      data: staff,
+    });
+  } catch (error) {
+    console.error("Get staff profile error:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+export const createStaff = async (req: Request, res: Response) => {
+  try {
+    const companyId = req.companyProfileId;
 
-    const hrProfile = await StaffProfile.findOne({ userId })
+    const { password, role, active, fullName } = req.body;
+
+    const companyProfile = await CompanyProfile.findById(companyId);
+    if (!companyProfile) {
+      res.status(404).json({ message: "Company profile not found" });
+      return;
+    }
+    console.log(req.body);
+    if (!password || !role || !fullName) {
+      res.status(400).json({ message: "All fields are required" });
+      return;
+    }
+
+    const nameParts = fullName.trim().toLowerCase().split(" ");
+    const lastName = nameParts[nameParts.length - 1];
+    const firstName = nameParts.slice(0, -1).join(" ");
+    const initials = nameParts
+      .slice(0, -1)
+      .map((word) => word[0])
+      .join("");
+    const emailPrefix = `${lastName}${initials}`;
+
+    const regex = new RegExp(`^${emailPrefix}\\d*@${companyProfile.domain}$`);
+    const similarEmails = await User.find({ email: { $regex: regex } });
+    const email = `${emailPrefix}${similarEmails.length + 1}@${
+      companyProfile.domain
+    }`;
+
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
+      res.status(400).json({ message: "Email already exists" });
+      return;
+    }
+
+    const user = await User.create({
+      email,
+      password,
+      role: "staff",
+      isVerified: true,
+    });
+    const profile = await Profile.create({
+      userId: user._id,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+    });
+    await profile.save();
+    const staff = await StaffProfile.create({
+      userId: user._id,
+      companyId: companyProfile._id,
+      profile: profile._id,
+      role,
+      active: active || true,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Staff created successfully",
+      data: staff,
+    });
+  } catch (error) {
+    console.error("Create company staff error:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+export const getStaffById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const staff = await StaffProfile.findOne({ userId: id })
       .populate("companyId")
       .populate("profile")
       .populate("jobPosts")
       .populate("applications");
-
-    if (!hrProfile) {
-      return res.status(404).json({ message: "HR profile not found" });
+    if (!staff) {
+      res.status(404).json({ message: "Staff not found" });
+      return;
     }
-
     res.status(200).json({
       success: true,
-      data: hrProfile,
+      data: staff,
     });
   } catch (error) {
-    console.error("Get HR profile error:", error);
+    console.error("Get staff by id error:", error);
     res.status(500).json({ message: "Server error", error });
   }
 };
-export const createProfile = async (req: Request, res: Response) => {
+
+export const updateStaff = async (req: Request, res: Response) => {
   try {
-    const userId = req.userId;
-    const { firstName, lastName, email, phone, profilePicture, address } =
-      req.body;
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !phone ||
-      !profilePicture ||
-      !address
-    ) {
-      res.status(400).json({ message: "All fields are required" });
-      return;
-    }
-    const existingProfile = await Profile.findOne({ userId });
-
-    if (existingProfile) {
-      res.status(400).json({ message: "Profile already exists" });
-      return;
-    }
-
-    const profile = await Profile.create({
-      userId,
-      firstName,
-      lastName,
-      email,
-      phone,
-      profilePicture,
-      address,
-    });
-
-    const userProfile = await StaffProfile.findOneAndUpdate(
-      { userId },
-      { profile: profile._id },
+    const { id } = req.params;
+    const { profile } = req.body;
+    const staff = await StaffProfile.findByIdAndUpdate(
+      id,
+      { profile },
       { new: true }
     );
-    if (!userProfile) {
-      res.status(404).json({ message: "User profile not found" });
+    if (!staff) {
+      res.status(404).json({ message: "Staff not found" });
       return;
     }
-
-    res.status(201).json({
-      success: true,
-      message: "Profile created successfully",
-    });
+    res
+      .status(200)
+      .json({ message: "Staff updated successfully", data: staff });
   } catch (error) {
-    console.error("Create profile error:", error);
-  }
-};
-export const createJob = async (req: Request, res: Response) => {
-  try {
-    const staffId = req.staffProfileId;
-    const {
-      title,
-      location,
-      jobType,
-      description,
-      salaryFrom,
-      salaryTo,
-      salaryCurrency,
-      benefits,
-      category,
-      skills,
-      status,
-      deadline,
-      requirements,
-      contacter,
-      keyResponsibilities,
-      experienceLevel,
-      isFeatured,
-      other,
-    } = req.body;
-    if (
-      !title ||
-      !description ||
-      !salaryFrom ||
-      !salaryTo ||
-      !salaryCurrency ||
-      !location ||
-      !jobType ||
-      !category ||
-      !skills ||
-      !status ||
-      !deadline ||
-      !requirements ||
-      !contacter ||
-      !keyResponsibilities ||
-      !experienceLevel ||
-      !isFeatured
-    ) {
-      res.status(400).json({ message: "All fields are required" });
-      return;
-    }
-    const staffProfile = await StaffProfile.findById(staffId);
-    const contacterProfile = await StaffProfile.findById(contacter);
-    if (!contacterProfile) {
-      res.status(404).json({ message: "Contacter profile not found" });
-      return;
-    }
-    if (contacterProfile.role !== "hr") {
-      res.status(403).json({ message: "Contacter must be an HR" });
-      return;
-    }
-    if (!staffProfile) {
-      res.status(404).json({ message: "Staff profile not found" });
-      return;
-    }
-    if (staffProfile.role !== "hr") {
-      res.status(403).json({ message: "Unauthorized" });
-      return;
-    }
-    await Job.create({
-      title,
-      description,
-      salaryFrom,
-      salaryTo,
-      salaryCurrency,
-      benefits,
-      category,
-      skills,
-      status,
-      deadline,
-      requirements,
-      contacter,
-      keyResponsibilities,
-      experienceLevel,
-      isFeatured,
-      other,
-    });
-    res.status(201).json({
-      success: true,
-      message: "Job created successfully",
-    });
-  } catch (error) {
-    console.error("Create job error:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-export const updateJob = async (req: Request, res: Response) => {
-  try {
-    const staffId = req.staffProfileId;
-    const { jobId } = req.params;
-    const {
-      title,
-      location,
-      jobType,
-      description,
-      salaryFrom,
-      salaryTo,
-      salaryCurrency,
-      benefits,
-      category,
-      skills,
-      status,
-      deadline,
-      requirements,
-      contacter,
-      keyResponsibilities,
-      experienceLevel,
-      isFeatured,
-      other,
-    } = req.body;
-    if (
-      !title ||
-      !description ||
-      !salaryFrom ||
-      !salaryTo ||
-      !salaryCurrency ||
-      !location ||
-      !jobType ||
-      !category ||
-      !skills ||
-      !status ||
-      !deadline ||
-      !requirements ||
-      !contacter ||
-      !keyResponsibilities ||
-      !experienceLevel ||
-      !isFeatured
-    ) {
-      res.status(400).json({ message: "All fields are required" });
-      return;
-    }
-    const staffProfile = await StaffProfile.findById(staffId);
-    const contacterProfile = await StaffProfile.findById(contacter);
-    if (!contacterProfile) {
-      res.status(404).json({ message: "Contacter profile not found" });
-      return;
-    }
-    if (contacterProfile.role !== "hr") {
-      res.status(403).json({ message: "Contacter must be an HR" });
-      return;
-    }
-    if (!staffProfile) {
-      res.status(404).json({ message: "Staff profile not found" });
-      return;
-    }
-    if (staffProfile.role !== "hr") {
-      res.status(403).json({ message: "Unauthorized" });
-      return;
-    }
-    const job = await Job.findByIdAndUpdate(jobId, {
-      title,
-      location,
-      jobType,
-      description,
-      salaryFrom,
-      salaryTo,
-      salaryCurrency,
-      benefits,
-      category,
-      skills,
-      status,
-      deadline,
-      requirements,
-      contacter,
-      keyResponsibilities,
-      experienceLevel,
-      isFeatured,
-      other,
-    });
-    if (!job) {
-      res.status(404).json({ message: "Job not found" });
-      return;
-    }
-    res.status(200).json({
-      success: true,
-      message: "Job updated successfully",
-    });
-  } catch (error) {
-    console.error("Update job error:", error);
+    console.error("Update staff error:", error);
     res.status(500).json({ message: "Server error", error });
   }
 };

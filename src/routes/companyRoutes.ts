@@ -5,7 +5,6 @@ import {
   getCompanyBySlug,
   updateCompanyProfile,
   getCompanyJobs,
-  deleteCompanyAccount,
   getAllCompanies,
   searchCompanies,
   createCompanyProfile,
@@ -17,12 +16,26 @@ import {
   updateCompanyStaff,
   updateCompanyStaffActive,
   deleteCompanyStaff,
+  importCompanyStaffFromCSV,
 } from "../controllers/companyController";
-import {
-  authenticate,
-  requireRole,
-  includeCompanyProfile,
-} from "../middleware/authMiddleware";
+import { authenticate, requireRole } from "../middleware/authMiddleware";
+import multer from "multer";
+import path from "path";
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(process.cwd(), "uploads"));
+  },
+  filename: (req, file, cb) => {
+    // Get file extension
+    const ext = path.extname(file.originalname);
+    // Create filename
+    cb(null, `${file.fieldname}-${Date.now()}${ext}`);
+  },
+});
+
+const upload = multer({ storage });
 
 const companyRoutes = express.Router();
 
@@ -39,6 +52,10 @@ companyRoutes.put(
   "/profile",
   authenticate,
   requireRole("company"),
+  upload.fields([
+    { name: "logo", maxCount: 1 },
+    { name: "wallPaper", maxCount: 1 },
+  ]),
   (req, res, next) => {
     updateCompanyProfile(req, res).catch(next);
   }
@@ -60,10 +77,10 @@ companyRoutes.get("/slug/:slug", authenticate, (req, res, next) => {
 companyRoutes.get("/", authenticate, (req, res, next) => {
   getAllCompanies(req, res).catch(next);
 });
-companyRoutes.post("/name", authenticate, (req, res, next) => {
+companyRoutes.get("/name", authenticate, (req, res, next) => {
   searchCompaniesByName(req, res).catch(next);
 });
-companyRoutes.post("/search/query", authenticate, (req, res, next) => {
+companyRoutes.get("/search/query", authenticate, (req, res, next) => {
   searchCompanies(req, res).catch(next);
 });
 // Company jobs
@@ -112,7 +129,7 @@ companyRoutes.put(
   }
 );
 companyRoutes.put(
-  "/staff/active",
+  "/staffs/active",
   authenticate,
   requireRole("company"),
   (req, res, next) => {
@@ -127,5 +144,12 @@ companyRoutes.delete(
     deleteCompanyStaff(req, res).catch(next);
   }
 );
-
+companyRoutes.post(
+  "/staffs/import",
+  authenticate,
+  requireRole("company"),
+  (req, res, next) => {
+    importCompanyStaffFromCSV(req, res).catch(next);
+  }
+);
 export default companyRoutes;
