@@ -101,6 +101,7 @@ export const updateCompanyProfile = async (req: Request, res: Response) => {
 export const getCompanyProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.userId;
+    console.log("first");
 
     const companyProfile = await CompanyProfile.findOne({ userId });
 
@@ -121,20 +122,13 @@ export const getCompanyById = async (req: Request, res: Response) => {
   try {
     const { companyId } = req.params;
 
-    const companyProfile = await CompanyProfile.findById(companyId).populate(
-      "jobPosts"
-    );
+    const companyProfile = await CompanyProfile.findById(companyId);
 
     if (!companyProfile) {
       return res.status(404).json({ message: "Company not found" });
     }
-
-    const user = await User.findById(companyProfile.userId).select(
-      "name email profilePicture"
-    );
-
     res.status(200).json({
-      data: { user, profile: companyProfile },
+      data: companyProfile,
       success: true,
     });
   } catch (error) {
@@ -160,83 +154,7 @@ export const getCompanyBySlug = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
-export const getCompanyJobs = async (req: Request, res: Response) => {
-  try {
-    const companyId = req.query.companyId as string;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
 
-    if (!companyId) {
-      res.status(400).json({ message: "Company ID is required" });
-      return;
-    }
-
-    const companyProfile = await CompanyProfile.findById(companyId);
-    if (!companyProfile) {
-      res.status(404).json({ message: "Company profile not found" });
-      return;
-    }
-
-    const jobs = await Job.find({ companyId: companyProfile._id })
-      .populate("category")
-      .populate({
-        path: "contacterId",
-        populate: {
-          path: "profile",
-          select: "email firstName lastName",
-        },
-      })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Job.countDocuments({ companyId: companyProfile._id });
-
-    res.status(200).json({
-      success: true,
-      data: jobs,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error("Get company jobs error:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-export const getHrJobs = async (req: Request, res: Response) => {
-  try {
-    const hrId = req.params.hrId;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
-
-    const jobs = await Job.find({ contacterId: hrId })
-      .populate("category")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    if (!jobs) {
-      res.status(404).json({ message: "Jobs not found" });
-      return;
-    }
-    const total = await Job.countDocuments({ contacterId: hrId });
-
-    res.status(200).json({
-      success: true,
-      data: jobs,
-      total,
-    });
-  } catch (error) {
-    console.error("Get hr jobs error:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-};
 export const getAllCompanies = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -244,9 +162,9 @@ export const getAllCompanies = async (req: Request, res: Response) => {
     const skip = (page - 1) * limit;
 
     const companies = await CompanyProfile.find()
-      .select("companyName industry location description logo slug")
-      .skip(skip)
+      .populate("userId")
       .limit(limit)
+      .skip(skip)
       .sort({ createdAt: -1 });
 
     const total = await CompanyProfile.countDocuments();

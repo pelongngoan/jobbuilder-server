@@ -3,22 +3,15 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import {
-  getAllJobCategories,
-  getJobCategoryById,
-  getJobCategoryBySlug,
-  createJobCategory,
-  updateJobCategory,
-  deleteJobCategory,
-  searchJobCategories,
+  getCategories,
+  getCategoryById,
+  createCategory,
+  updateCategory,
+  deleteCategory,
   importCategoriesFromCSV,
-  getAllJobCategoriesParent,
+  searchJobCategories,
 } from "../controllers/jobCategoryController";
-import {
-  verifyHR,
-  verifyUser,
-  authenticate,
-  requireRole,
-} from "../middleware/authMiddleware";
+import { authenticate } from "../middleware/authMiddleware";
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -56,51 +49,23 @@ const upload = multer({
 });
 
 const router = express.Router();
+router.get("/search", authenticate, searchJobCategories);
+router.get("/", authenticate, getCategories);
+router.get("/:id", authenticate, getCategoryById);
+router.post("/", authenticate, createCategory);
+router.put("/:id", authenticate, updateCategory);
+router.delete("/:id", authenticate, deleteCategory);
+router.post("/upload", authenticate, (req, res, next) => {
+  upload.single("file")(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message,
+      });
+    }
 
-// Public routes
-router.get("/", getAllJobCategoriesParent);
-router.get("/all", getAllJobCategories);
-router.get("/search", searchJobCategories);
-router.get("/id/:id", getJobCategoryById);
-router.get("/slug/:slug", getJobCategoryBySlug);
-
-// Protected routes - restricted to HR or admin users
-router.post("/", authenticate, requireRole(["hr", "admin"]), createJobCategory);
-router.post(
-  "/upload",
-  authenticate,
-  requireRole(["hr", "admin"]),
-  (req, res, next) => {
-    upload.single("file")(req, res, (err) => {
-      if (err) {
-        return res.status(400).json({
-          success: false,
-          message: err.message,
-        });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: "No file uploaded",
-        });
-      }
-
-      importCategoriesFromCSV(req, res).catch(next);
-    });
-  }
-);
-router.put(
-  "/:id",
-  authenticate,
-  requireRole(["hr", "admin"]),
-  updateJobCategory
-);
-router.delete(
-  "/:id",
-  authenticate,
-  requireRole(["hr", "admin"]),
-  deleteJobCategory
-);
+    importCategoriesFromCSV(req, res).catch(next);
+  });
+});
 
 export default router;

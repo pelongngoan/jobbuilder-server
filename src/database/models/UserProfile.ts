@@ -6,7 +6,6 @@ export interface IUserProfile extends Document {
   savedJobs?: Schema.Types.ObjectId[];
   applications?: Schema.Types.ObjectId[];
   resumes?: Schema.Types.ObjectId[];
-  education?: Schema.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,12 +39,6 @@ const userProfileSchema = new Schema<IUserProfile>(
       {
         type: Schema.Types.ObjectId,
         ref: "Resume",
-      },
-    ],
-    education: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "School",
       },
     ],
   },

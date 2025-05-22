@@ -6,7 +6,7 @@ import { User } from "../database/models/User";
 import { UserProfile } from "../database/models/UserProfile";
 import { CompanyProfile } from "../database/models/CompanyProfile";
 import { emailService } from "../utils/emailService";
-import { StaffProfile } from "../database/models";
+import { Profile, StaffProfile } from "../database/models";
 
 dotenv.config();
 
@@ -45,10 +45,17 @@ export const register = async (req: Request, res: Response) => {
 
     switch (role) {
       case "user":
-        const userProfile = new UserProfile({
+        const profile = new Profile({
           userId: newUser._id,
+          email: email,
         });
-        await userProfile.save();
+        await profile.save().then((profile) => {
+          const userProfile = new UserProfile({
+            userId: newUser._id,
+            profile: profile._id,
+          });
+          userProfile.save();
+        });
         break;
       case "company":
         const companyProfile = new CompanyProfile({

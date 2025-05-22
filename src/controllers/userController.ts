@@ -100,7 +100,8 @@ export const getUserProfile = async (req: Request, res: Response) => {
       .populate("applications")
       .populate("savedJobs")
       .populate("resumes")
-      .populate("education");
+      .populate("userId");
+    console.log(userProfile.profile);
 
     if (!userProfile) {
       res.status(404).json({ message: "Profile not found" });

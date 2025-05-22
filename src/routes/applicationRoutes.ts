@@ -1,24 +1,20 @@
 import express from "express";
+import { authenticate } from "../middleware/authMiddleware";
 import {
   applyForJob,
   getUserApplications,
   getApplicationById,
-  getJobApplications,
-  updateApplicationStatus,
   deleteApplication,
+  updateApplicationStatus,
+  getJobApplications,
 } from "../controllers/applicationController";
-import { verifyHR, verifyUser } from "../middleware/authMiddleware";
-
 const router = express.Router();
 
-// 🔹 User Routes (Protected)
-router.post("/:jobId/apply", verifyUser, applyForJob);
-router.get("/", verifyUser, getUserApplications);
-router.get("/:applicationId", verifyUser, getApplicationById);
-router.delete("/:applicationId", verifyUser, deleteApplication);
-
-// 🔹 HR Routes (Protected)
-router.get("/job/:jobId", verifyHR, getJobApplications);
-router.put("/:applicationId/status", verifyHR, updateApplicationStatus);
+router.get("/", authenticate, getUserApplications);
+router.post("/:jobId/apply", authenticate, applyForJob);
+router.delete("/:applicationId", authenticate, deleteApplication);
+router.get("/:applicationId", authenticate, getApplicationById);
+router.put("/:applicationId", authenticate, updateApplicationStatus);
+router.get("/job/:jobId", authenticate, getJobApplications);
 
 export default router;

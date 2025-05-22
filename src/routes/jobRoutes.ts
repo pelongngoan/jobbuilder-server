@@ -1,24 +1,19 @@
 import express from "express";
 import {
   createJob,
-  getAllJobs,
+  getFeaturedJobs,
+  uploadJobsFromCSV,
+  getCompanyJobs,
+  getHrJobs,
+  getJobByCategoryId,
   getJobById,
-  getJobBySlug,
-  searchJobs,
   updateJob,
   deleteJob,
-  getJobApplications,
-  getSimilarJobs,
-  uploadJobsFromCSV,
+  searchJobs,
+  saveJob,
 } from "../controllers/jobController";
-import {
-  requireRole,
-  verifyHR,
-  verifyUser,
-  authenticate,
-} from "../middleware/authMiddleware";
+import { requireRole, authenticate } from "../middleware/authMiddleware";
 import multer from "multer";
-import { getCompanyJobs, getHrJobs } from "../controllers/companyController";
 
 // Storage config for CSV uploads
 const storage = multer.diskStorage({
@@ -34,28 +29,20 @@ const upload = multer({ storage });
 
 const jobRoutes = express.Router();
 
-// // Public routes
-// jobRoutes.get("/", getAllJobs);
-// jobRoutes.get("/search", searchJobs);
-// jobRoutes.get("/slug/:slug", getJobBySlug);
-// jobRoutes.get("/:jobId", getJobById);
-// jobRoutes.get("/:jobId/similar", getSimilarJobs);
-
-// // Protected routes
-// jobRoutes.post("/", verifyHR, createJob);
-
-// jobRoutes.put("/:jobId", verifyHR, updateJob);
-// jobRoutes.delete("/:jobId", verifyHR, deleteJob);
-// jobRoutes.get("/:jobId/applications", verifyHR, getJobApplications);
-
 jobRoutes.post("/", authenticate, requireRole(["staff", "company"]), createJob);
 jobRoutes.get(
   "/company",
   authenticate,
-  requireRole(["staff", "company"]),
+  // requireRole(["staff", "company"]),
   getCompanyJobs
 );
-jobRoutes.get("/hr/:hrId", authenticate, requireRole(["staff"]), getHrJobs);
+jobRoutes.put(
+  "/:jobId",
+  authenticate,
+  requireRole(["staff", "company"]),
+  updateJob
+);
+jobRoutes.get("/hr", authenticate, requireRole(["staff"]), getHrJobs);
 jobRoutes.post(
   "/upload",
   authenticate,
@@ -69,5 +56,23 @@ jobRoutes.post(
     uploadJobsFromCSV(req, res).catch(next);
   }
 );
+
+jobRoutes.get("/featured", getFeaturedJobs);
+jobRoutes.get("/categories/:categoryId", getJobByCategoryId);
+jobRoutes.get(
+  "/:jobId",
+  upload.fields([
+    { name: "logo", maxCount: 1 },
+    { name: "wallPaper", maxCount: 1 },
+  ]),
+  getJobById
+);
+jobRoutes.delete(
+  "/:jobId",
+  authenticate,
+  requireRole(["staff", "company"]),
+  deleteJob
+);
+jobRoutes.get("/search", searchJobs);
 
 export default jobRoutes;

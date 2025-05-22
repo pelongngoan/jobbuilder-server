@@ -28,7 +28,7 @@ export interface IResume extends Document {
       startDate?: Date;
       endDate?: Date;
       current?: boolean;
-      schoolId?: Schema.Types.ObjectId;
+      institution?: string;
       degree?: string;
       field?: string;
       gpa?: string;
@@ -102,7 +102,7 @@ const resumeSchema = new Schema<IResume>(
       ],
       education: [
         {
-          schoolId: { type: Schema.Types.ObjectId, ref: "School" },
+          institution: { type: String },
           degree: { type: String },
           field: { type: String },
           startDate: { type: Date },

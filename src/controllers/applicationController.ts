@@ -7,8 +7,8 @@ import { Resume } from "../database/models/Resume";
 export const applyForJob = async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;
-    const userId = req.userId;
-    const { resumeId, coverLetter } = req.body;
+    const userId = req.userProfileId;
+    const { resumeId } = req.body;
 
     // Check if the job exists
     const job = await Job.findById(jobId);
@@ -38,7 +38,6 @@ export const applyForJob = async (req: Request, res: Response) => {
       jobId,
       userId,
       resumeId,
-      coverLetter,
       status: "pending",
     });
 
@@ -54,7 +53,7 @@ export const applyForJob = async (req: Request, res: Response) => {
 // 🔹 Get All Applications for a User
 export const getUserApplications = async (req: Request, res: Response) => {
   try {
-    const userId = req.userId;
+    const userId = req.userProfileId;
     const applications = await Application.find({ userId })
       .populate("jobId", "title companyId")
       .populate("resumeId", "title");

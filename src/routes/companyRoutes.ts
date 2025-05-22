@@ -4,7 +4,7 @@ import {
   getCompanyById,
   getCompanyBySlug,
   updateCompanyProfile,
-  getCompanyJobs,
+  // getCompanyJobs,
   getAllCompanies,
   searchCompanies,
   createCompanyProfile,
@@ -84,9 +84,9 @@ companyRoutes.get("/search/query", authenticate, (req, res, next) => {
   searchCompanies(req, res).catch(next);
 });
 // Company jobs
-companyRoutes.get("/jobs", authenticate, (req, res, next) => {
-  getCompanyJobs(req, res).catch(next);
-});
+// companyRoutes.get("/jobs", authenticate, (req, res, next) => {
+//   getCompanyJobs(req, res).catch(next);
+// });
 // Company staff
 companyRoutes.get(
   "/staff",
