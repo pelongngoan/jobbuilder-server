@@ -25,7 +25,6 @@ export const authenticate = async (
       res.status(401).json({ message: "Unauthorized - No token provided" });
       return;
     }
-
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET as string
@@ -54,6 +53,10 @@ export const authenticate = async (
         profile = await CompanyProfile.findOne({ userId: user._id });
         req.companyProfileId = profile?._id.toString();
         break;
+      case "admin":
+        console.log("admin");
+        req.userRole = "admin";
+        break;
       default:
         res.status(401).json({ message: "Unauthorized - Invalid user role" });
         return;
@@ -70,6 +73,7 @@ export const authenticate = async (
 export const requireRole = (roles: UserRole | UserRole[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log(req.userRole);
       const allowedRoles = Array.isArray(roles) ? roles : [roles];
       if (!req.userRole || !allowedRoles.includes(req.userRole)) {
         res.status(403).json({

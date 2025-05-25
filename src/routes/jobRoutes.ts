@@ -10,7 +10,6 @@ import {
   updateJob,
   deleteJob,
   searchJobs,
-  saveJob,
 } from "../controllers/jobController";
 import { requireRole, authenticate } from "../middleware/authMiddleware";
 import multer from "multer";
@@ -59,14 +58,7 @@ jobRoutes.post(
 
 jobRoutes.get("/featured", getFeaturedJobs);
 jobRoutes.get("/categories/:categoryId", getJobByCategoryId);
-jobRoutes.get(
-  "/:jobId",
-  upload.fields([
-    { name: "logo", maxCount: 1 },
-    { name: "wallPaper", maxCount: 1 },
-  ]),
-  getJobById
-);
+jobRoutes.get("/:jobId", getJobById);
 jobRoutes.delete(
   "/:jobId",
   authenticate,

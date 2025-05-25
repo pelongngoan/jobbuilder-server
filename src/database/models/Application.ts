@@ -11,6 +11,7 @@ export enum ApplicationStatus {
 
 export interface IApplication extends Document {
   userId: Schema.Types.ObjectId;
+  companyId: Schema.Types.ObjectId;
   jobId: Schema.Types.ObjectId;
   resumeId: Schema.Types.ObjectId;
   status: ApplicationStatus;
@@ -22,6 +23,11 @@ export interface IApplication extends Document {
 const applicationSchema = new Schema<IApplication>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "UserProfile", required: true },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: "CompanyProfile",
+      required: true,
+    },
     jobId: { type: Schema.Types.ObjectId, ref: "Job", required: true },
     resumeId: { type: Schema.Types.ObjectId, ref: "Resume", required: true },
     status: {

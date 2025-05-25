@@ -345,6 +345,7 @@ export const getCompanyJobs = async (req: Request, res: Response) => {
           select: "email firstName lastName",
         },
       })
+      .populate("companyId")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -472,6 +473,16 @@ export const searchJobs = async (req: Request, res: Response) => {
     const skip = (pageNum - 1) * limitNum;
     const jobs = await Job.find({
       title: { $regex: query as string, $options: "i" },
+      category: { $regex: query as string, $options: "i" },
+      location: { $regex: query as string, $options: "i" },
+      jobType: { $regex: query as string, $options: "i" },
+      experienceLevel: { $regex: query as string, $options: "i" },
+      salaryFrom: { $gte: Number(query) },
+      salaryTo: { $lte: Number(query) },
+      benefits: { $regex: query as string, $options: "i" },
+      skills: { $regex: query as string, $options: "i" },
+      status: { $regex: query as string, $options: "i" },
+      deadline: { $lte: new Date() },
     })
       .populate("category")
       .populate("companyId")

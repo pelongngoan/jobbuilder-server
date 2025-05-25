@@ -15,12 +15,49 @@ import {
   removeApplication,
   addEducation,
   removeEducation,
+  getUsers,
+  importUsers,
 } from "../controllers/userController";
 import { authenticate, requireRole } from "../middleware/authMiddleware";
 import { uploadResume } from "../utils/fileUpload";
-
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 const userRoutes = express.Router();
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
+// Storage config for CSV uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    // Only accept CSV files
+    if (!file) {
+      return cb(null, false);
+    }
+
+    if (file.mimetype === "text/csv" || file.originalname.endsWith(".csv")) {
+      return cb(null, true);
+    } else {
+      return cb(null, false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
 // 🔹 User Profile Routes
 userRoutes.post("/profile", authenticate, requireRole("user"), createProfile);
 userRoutes.put("/profile", authenticate, requireRole("user"), updateProfile);
@@ -92,6 +129,23 @@ userRoutes.delete(
   authenticate,
   requireRole("user"),
   deleteResume
+);
+userRoutes.get("/", authenticate, requireRole("admin"), getUsers);
+userRoutes.post(
+  "/import",
+  authenticate,
+  requireRole("admin"),
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message,
+        });
+      }
+      importUsers(req, res).catch(next);
+    });
+  }
 );
 
 export default userRoutes;

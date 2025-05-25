@@ -79,8 +79,10 @@ export const getSaveJob = async (req: Request, res: Response) => {
 
     const savedJobs = await SavedJob.find({
       userId: userId,
-    }).populate("jobId");
-    console.log(savedJobs, "savedJobs");
+    })
+      .populate("jobId")
+      .populate("userId")
+      .populate({ path: "jobId", populate: { path: "companyId" } });
 
     res.status(200).json({
       success: true,

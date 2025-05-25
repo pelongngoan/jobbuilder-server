@@ -112,7 +112,6 @@ export const login = async (req: Request, res: Response) => {
 
     user.lastLogin = new Date();
     await user.save();
-
     const token = generateToken(user._id.toString(), user.role);
 
     let profile;

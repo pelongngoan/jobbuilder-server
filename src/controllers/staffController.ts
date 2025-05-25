@@ -220,6 +220,8 @@ export const importStaff = async (req: Request, res: Response) => {
   try {
     const companyId = req.companyProfileId;
     const company = await CompanyProfile.findById(companyId);
+    console.log("companyId");
+    console.log(companyId);
     if (!company) {
       return res
         .status(404)
@@ -236,7 +238,6 @@ export const importStaff = async (req: Request, res: Response) => {
     fs.createReadStream(file.path)
       .pipe(csv())
       .on("data", (row) => {
-        console.log(row);
         staffs.push({
           firstName: row.firstName,
           lastName: row.lastName,
@@ -247,7 +248,6 @@ export const importStaff = async (req: Request, res: Response) => {
       .on("end", async () => {
         for (const staff of staffs) {
           try {
-            console.log(staff);
             const nameParts = removeDiacritics(
               staff.lastName.toLowerCase()
             ).split(" ");

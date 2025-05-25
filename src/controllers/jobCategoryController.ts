@@ -10,7 +10,6 @@ export const searchJobCategories = async (req: Request, res: Response) => {
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
-
     let searchQuery = {};
     if (query) {
       searchQuery = {
@@ -21,7 +20,7 @@ export const searchJobCategories = async (req: Request, res: Response) => {
     const categories = await JobCategory.find(searchQuery)
       .skip(skip)
       .limit(limitNum)
-      .populate("parentCategory", "name")
+      .populate("parentCategory")
       .sort({ name: 1 });
 
     const total = await JobCategory.countDocuments(searchQuery);
@@ -52,7 +51,10 @@ export const getCategories = async (req: Request, res: Response) => {
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    const categories = await JobCategory.find().skip(skip).limit(limitNum);
+    const categories = await JobCategory.find()
+      .populate("parentCategory")
+      .skip(skip)
+      .limit(limitNum);
     const total = await JobCategory.countDocuments();
 
     if (!categories) {

@@ -6,7 +6,12 @@ import { getRelativeFilePath } from "../utils/fileUpload";
 import { Profile } from "../database/models/Profile";
 import { School } from "../database/models/School";
 import { Job } from "../database/models/Job";
-
+import { CompanyProfile, StaffProfile, User } from "../database/models";
+import path from "path";
+import fs from "fs";
+import csv from "csv-parser";
+import { removeDiacritics } from "../utils/removeDiacritics";
+import { generateRandomPassword } from "../utils/generateRandomPassword";
 dotenv.config();
 
 export const createProfile = async (req: Request, res: Response) => {
@@ -101,7 +106,6 @@ export const getUserProfile = async (req: Request, res: Response) => {
       .populate("savedJobs")
       .populate("resumes")
       .populate("userId");
-    console.log(userProfile.profile);
 
     if (!userProfile) {
       res.status(404).json({ message: "Profile not found" });
@@ -482,6 +486,142 @@ export const getResumeById = async (req: Request, res: Response) => {
       success: false,
       message: "Server error",
       error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+export const getUsers = async (req: Request, res: Response) => {
+  try {
+    const { page, limit } = req.query;
+    const users = await User.find()
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+    const total = await User.countDocuments({});
+    res.status(200).json({
+      success: true,
+      data: users,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get users error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+export const importUsers = async (req: Request, res: Response) => {
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({
+      success: false,
+      message: "No file uploaded",
+    });
+  }
+
+  const imported: any[] = [];
+  const errors: any[] = [];
+
+  try {
+    const users: {
+      email: string;
+      password: string;
+      role: string;
+      isVerified: boolean;
+    }[] = [];
+
+    fs.createReadStream(file.path)
+      .pipe(csv())
+      .on("data", (row) => {
+        users.push({
+          email: row.email,
+          password: row.password,
+          role: row.role,
+          isVerified: row.isVerified?.toLowerCase() === "true",
+        });
+      })
+      .on("end", async () => {
+        for (const user of users) {
+          try {
+            const existing = await User.findOne({ email: user.email });
+            if (existing) {
+              errors.push({
+                email: user.email,
+                reason: "Email already exists",
+              });
+              continue;
+            }
+
+            const newUser = await User.create({
+              email: user.email,
+              password: user.password,
+              role: user.role,
+              isVerified: user.isVerified,
+            });
+            switch (user.role) {
+              case "user":
+                const profile = await Profile.create({
+                  userId: newUser._id,
+                  email: user.email,
+                }).then(async (profile) => {
+                  await UserProfile.create({
+                    userId: newUser._id,
+                    profile: profile._id,
+                  });
+                });
+                break;
+              case "company":
+                await CompanyProfile.create({
+                  userId: newUser._id,
+                  email: user.email,
+                });
+                break;
+              case "admin":
+                await Profile.create({
+                  userId: newUser._id,
+                  email: user.email,
+                });
+                break;
+            }
+
+            imported.push({
+              email: user.email,
+              password: user.password,
+            });
+          } catch (err: any) {
+            errors.push({
+              email: user.email,
+              reason: err.message,
+            });
+          }
+        }
+
+        fs.unlinkSync(file.path);
+
+        res.status(201).json({
+          success: true,
+          message: "Users import completed",
+          imported: imported.length,
+          errors,
+          data: imported,
+        });
+      });
+  } catch (error: any) {
+    console.error("CSV import error:", error);
+    if (file && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "CSV import error",
+      error: error.message || "Unknown error",
     });
   }
 };

@@ -66,7 +66,40 @@ export const updateCompanyProfile = async (req: Request, res: Response) => {
     const logoUrl = logo ? `/uploads/${logo}` : undefined;
     const wallPaperUrl = wallPaper ? `/uploads/${wallPaper}` : undefined;
 
-    const companyProfile = await CompanyProfile.findOneAndUpdate(
+    // Try to find existing profile
+    let companyProfile = await CompanyProfile.findOne({ userId });
+
+    if (!companyProfile) {
+      // If profile doesn't exist, create a new one
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      companyProfile = await CompanyProfile.create({
+        userId,
+        companyName,
+        email: user.email,
+        domain,
+        phone,
+        address,
+        logo: logoUrl,
+        wallPaper: wallPaperUrl,
+        website,
+        description,
+        slug: companyName.toLowerCase().replace(/ /g, "-"),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: "Company profile created successfully",
+        data: companyProfile,
+      });
+    }
+
+    // If profile exists, update it
+    companyProfile = await CompanyProfile.findOneAndUpdate(
       { userId },
       {
         companyName,
@@ -84,10 +117,6 @@ export const updateCompanyProfile = async (req: Request, res: Response) => {
       { new: true }
     );
 
-    if (!companyProfile) {
-      return res.status(404).json({ message: "Company profile not found" });
-    }
-
     res.status(200).json({
       success: true,
       message: "Company profile updated successfully",
@@ -101,7 +130,6 @@ export const updateCompanyProfile = async (req: Request, res: Response) => {
 export const getCompanyProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.userId;
-    console.log("first");
 
     const companyProfile = await CompanyProfile.findOne({ userId });
 
@@ -379,7 +407,6 @@ export const createCompanyStaff = async (req: Request, res: Response) => {
       profilePicture: "",
     });
     await profile.save();
-    console.log(profile._id);
     const staff = await StaffProfile.create({
       userId: user._id,
       companyId: companyProfile._id,
@@ -404,7 +431,8 @@ export const importCompanyStaffFromCSV = async (
 ) => {
   const file = req.file;
   const companyId = req.companyProfileId;
-
+  console.log("req.body");
+  console.log(companyId);
   if (!file) {
     return res.status(400).json({ message: "No file uploaded" });
   }

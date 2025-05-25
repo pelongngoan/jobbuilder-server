@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Application } from "../database/models/Application";
 import { Job } from "../database/models/Job";
 import { Resume } from "../database/models/Resume";
+import { Schema } from "mongoose";
 
 // 🔹 Apply for a Job (User Only)
 export const applyForJob = async (req: Request, res: Response) => {
@@ -38,10 +39,18 @@ export const applyForJob = async (req: Request, res: Response) => {
       jobId,
       userId,
       resumeId,
+      companyId: job.companyId,
       status: "pending",
     });
 
     await newApplication.save();
+    if (newApplication) {
+      job.applications.push(
+        newApplication._id as unknown as Schema.Types.ObjectId
+      );
+      job.applicationCount++;
+      await job.save();
+    }
     res
       .status(201)
       .json({ message: "Application submitted successfully", newApplication });
@@ -55,10 +64,40 @@ export const getUserApplications = async (req: Request, res: Response) => {
   try {
     const userId = req.userProfileId;
     const applications = await Application.find({ userId })
-      .populate("jobId", "title companyId")
-      .populate("resumeId", "title");
+      .populate("jobId")
+      .populate("resumeId");
 
-    res.status(200).json(applications);
+    res.status(200).json({
+      success: true,
+      message: "Applications retrieved successfully",
+      data: applications,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// 🔹 Get All Applications for a Company
+export const getCompanyApplications = async (req: Request, res: Response) => {
+  try {
+    const { companyId } = req.params;
+
+    const applications = await Application.find({ companyId })
+      .populate("jobId")
+      .populate("resumeId")
+      .populate({
+        path: "userId",
+        populate: {
+          path: "profile",
+          select: "email firstName lastName phone",
+        },
+      });
+
+    res.status(200).json({
+      success: true,
+      message: "Applications retrieved successfully",
+      data: applications,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
@@ -68,6 +107,7 @@ export const getUserApplications = async (req: Request, res: Response) => {
 export const getApplicationById = async (req: Request, res: Response) => {
   try {
     const { applicationId } = req.params;
+    const { status, interviewerId } = req.body;
     const application = await Application.findById(applicationId)
       .populate("jobId", "title companyId")
       .populate("resumeId", "title");
@@ -103,7 +143,16 @@ export const updateApplicationStatus = async (req: Request, res: Response) => {
     const { applicationId } = req.params;
     const { status } = req.body;
 
-    if (!["pending", "shortlisted", "rejected", "accepted"].includes(status)) {
+    if (
+      ![
+        "pending",
+        "reviewed",
+        "shortlisted",
+        "rejected",
+        "interview",
+        "accepted",
+      ].includes(status)
+    ) {
       res.status(400).json({ message: "Invalid status value" });
       return;
     }
