@@ -4,14 +4,10 @@ import { UserProfile } from "../database/models/UserProfile";
 import { Resume } from "../database/models/Resume";
 import { getRelativeFilePath } from "../utils/fileUpload";
 import { Profile } from "../database/models/Profile";
-import { School } from "../database/models/School";
 import { Job } from "../database/models/Job";
 import { CompanyProfile, StaffProfile, User } from "../database/models";
-import path from "path";
 import fs from "fs";
 import csv from "csv-parser";
-import { removeDiacritics } from "../utils/removeDiacritics";
-import { generateRandomPassword } from "../utils/generateRandomPassword";
 dotenv.config();
 
 export const createProfile = async (req: Request, res: Response) => {
@@ -213,55 +209,6 @@ export const removeApplication = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Remove application error:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-export const addEducation = async (req: Request, res: Response) => {
-  try {
-    const userId = req.userId;
-    const { educationId } = req.params;
-
-    const education = await School.findById(educationId);
-    if (!education) {
-      res.status(404).json({ message: "Education not found" });
-      return;
-    }
-    const updatedProfile = await UserProfile.findOneAndUpdate(
-      { userId },
-      { $push: { education: educationId } }
-    );
-    if (!updatedProfile) {
-      res.status(404).json({ message: "Profile not found" });
-      return;
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Education added successfully",
-    });
-  } catch (error) {
-    console.error("Update education error:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-};
-export const removeEducation = async (req: Request, res: Response) => {
-  try {
-    const userId = req.userId;
-    const { educationId } = req.params;
-    const updatedProfile = await UserProfile.findOneAndUpdate(
-      { userId },
-      { $pull: { education: educationId } }
-    );
-    if (!updatedProfile) {
-      res.status(404).json({ message: "Profile not found" });
-      return;
-    }
-    res.status(200).json({
-      success: true,
-      message: "Education removed successfully",
-    });
-  } catch (error) {
-    console.error("Remove education error:", error);
     res.status(500).json({ message: "Server error", error });
   }
 };
@@ -491,17 +438,59 @@ export const getResumeById = async (req: Request, res: Response) => {
 };
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    const { page, limit } = req.query;
+    const { page = 1, limit = 10 } = req.query;
+
     const users = await User.find()
+      .select("email password role isVerified")
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
-    const total = await User.countDocuments({});
+
+    const data: any[] = [];
+
+    for (const user of users) {
+      let userData: any = {
+        _id: user._id,
+        email: user.email,
+        password: user.password,
+        role: user.role,
+        isVerified: user.isVerified,
+      };
+
+      if (user.role === "user") {
+        const profile = await Profile.findOne({ userId: user._id }).select(
+          "firstName lastName email phone address"
+        );
+        if (profile) {
+          userData.firstName = profile.firstName;
+          userData.lastName = profile.lastName;
+          userData.email = profile.email;
+          userData.phone = profile.phone;
+          userData.address = profile.address;
+        }
+      } else if (user.role === "company") {
+        const companyProfile = await CompanyProfile.findOne({
+          userId: user._id,
+        }).select("companyName domain address phone website");
+        if (companyProfile) {
+          userData.companyName = companyProfile.companyName;
+          userData.domain = companyProfile.domain;
+          userData.address = companyProfile.address;
+          userData.phone = companyProfile.phone;
+          userData.website = companyProfile.website;
+        }
+      }
+
+      data.push(userData);
+    }
+
+    const total = await User.countDocuments();
+
     res.status(200).json({
       success: true,
-      data: users,
+      data,
       pagination: {
-        page,
-        limit,
+        page: Number(page),
+        limit: Number(limit),
         total,
         pages: Math.ceil(total / Number(limit)),
       },
@@ -513,6 +502,57 @@ export const getUsers = async (req: Request, res: Response) => {
       message: "Server error",
       error: error instanceof Error ? error.message : "Unknown error",
     });
+  }
+};
+
+export const getUserById = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+    let userData: any = {
+      _id: user._id,
+      email: user.email,
+      password: user.password,
+      role: user.role,
+      isVerified: user.isVerified,
+    };
+
+    if (user.role === "user") {
+      const profile = await Profile.findOne({ userId: user._id }).select(
+        "firstName lastName email phone address"
+      );
+      if (profile) {
+        userData.firstName = profile.firstName;
+        userData.lastName = profile.lastName;
+        userData.email = profile.email;
+        userData.phone = profile.phone;
+        userData.address = profile.address;
+      }
+    } else if (user.role === "company") {
+      const companyProfile = await CompanyProfile.findOne({
+        userId: user._id,
+      }).select("companyName domain address phone website");
+      if (companyProfile) {
+        userData.companyName = companyProfile.companyName;
+        userData.domain = companyProfile.domain;
+        userData.address = companyProfile.address;
+        userData.phone = companyProfile.phone;
+        userData.website = companyProfile.website;
+      }
+    }
+    res.status(200).json({
+      success: true,
+      data: userData,
+    });
+  } catch (error) {
+    console.error("Get user by id error:", error);
   }
 };
 export const importUsers = async (req: Request, res: Response) => {
@@ -534,6 +574,13 @@ export const importUsers = async (req: Request, res: Response) => {
       password: string;
       role: string;
       isVerified: boolean;
+      firstName: string;
+      lastName: string;
+      phone: string;
+      address: string;
+      companyName: string;
+      domain: string;
+      website: string;
     }[] = [];
 
     fs.createReadStream(file.path)
@@ -544,6 +591,13 @@ export const importUsers = async (req: Request, res: Response) => {
           password: row.password,
           role: row.role,
           isVerified: row.isVerified?.toLowerCase() === "true",
+          firstName: row.firstName,
+          lastName: row.lastName,
+          phone: row.phone,
+          address: row.address,
+          companyName: row.companyName,
+          domain: row.domain,
+          website: row.website,
         });
       })
       .on("end", async () => {
@@ -569,6 +623,10 @@ export const importUsers = async (req: Request, res: Response) => {
                 const profile = await Profile.create({
                   userId: newUser._id,
                   email: user.email,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  phone: user.phone,
+                  address: user.address,
                 }).then(async (profile) => {
                   await UserProfile.create({
                     userId: newUser._id,
@@ -580,12 +638,21 @@ export const importUsers = async (req: Request, res: Response) => {
                 await CompanyProfile.create({
                   userId: newUser._id,
                   email: user.email,
+                  companyName: user.companyName,
+                  domain: user.domain,
+                  address: user.address,
+                  phone: user.phone,
+                  website: user.website,
                 });
                 break;
               case "admin":
                 await Profile.create({
                   userId: newUser._id,
                   email: user.email,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  phone: user.phone,
+                  address: user.address,
                 });
                 break;
             }
@@ -623,5 +690,230 @@ export const importUsers = async (req: Request, res: Response) => {
       message: "CSV import error",
       error: error.message || "Unknown error",
     });
+  }
+};
+export const createUser = async (req: Request, res: Response) => {
+  try {
+    const {
+      email,
+      password,
+      role,
+      isVerified,
+      firstName,
+      lastName,
+      phone,
+      address,
+      companyName,
+      website,
+      domain,
+    } = req.body;
+    if (!email || !password || !role) {
+      res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+      return;
+    }
+    const newUser = new User({ email, password, role, isVerified });
+    await newUser.save();
+    switch (role) {
+      case "user":
+        const profile = new Profile({
+          userId: newUser._id,
+          email: email,
+          firstName: firstName,
+          lastName: lastName,
+          phone: phone,
+          address: address,
+        });
+        await profile.save().then((profile) => {
+          const userProfile = new UserProfile({
+            userId: newUser._id,
+            profile: profile._id,
+          });
+          userProfile.save();
+        });
+        break;
+      case "company":
+        const companyProfile = new CompanyProfile({
+          userId: newUser._id,
+          email: email,
+          companyName: companyName,
+          domain: domain,
+          address: address,
+          phone: phone,
+          website: website,
+        });
+        await companyProfile.save();
+        break;
+    }
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      data: newUser,
+    });
+  } catch (error) {
+    console.error("Create user error:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+export const updateUser = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const {
+      email,
+      password,
+      role,
+      isVerified,
+      firstName,
+      lastName,
+      phone,
+      address,
+      companyName,
+      website,
+      domain,
+    } = req.body;
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+    switch (user?.role) {
+      case "user":
+        await Profile.findOneAndUpdate(
+          { userId: user._id },
+          {
+            firstName,
+            lastName,
+            phone,
+            address,
+            email,
+          }
+        );
+        break;
+      case "company":
+        await CompanyProfile.findOneAndUpdate(
+          { userId: user._id },
+          {
+            companyName,
+            website,
+            domain,
+            email,
+          }
+        );
+        break;
+    }
+    await User.findByIdAndUpdate(userId, {
+      email,
+      password,
+      isVerified,
+    });
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+    });
+  } catch (error) {
+    console.error("Update user error:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+export const deleteUser = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+    switch (user?.role) {
+      case "user":
+        await UserProfile.findOneAndDelete({ userId: user._id });
+        await Profile.findOneAndDelete({ userId: user._id });
+        break;
+      case "company":
+        await CompanyProfile.findOneAndDelete({ userId: user._id });
+        break;
+    }
+    await User.findByIdAndDelete(userId);
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete user error:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+export const searchUsers = async (req: Request, res: Response) => {
+  try {
+    const query = req.query.q as string;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const users = await User.find({ email: { $regex: query, $options: "i" } })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const data: any[] = [];
+
+    for (const user of users) {
+      let userData: any = {
+        _id: user._id,
+        email: user.email,
+        password: user.password,
+        role: user.role,
+        isVerified: user.isVerified,
+      };
+
+      if (user.role === "user") {
+        const profile = await Profile.findOne({ userId: user._id }).select(
+          "firstName lastName email phone address"
+        );
+        if (profile) {
+          userData.firstName = profile.firstName;
+          userData.lastName = profile.lastName;
+          userData.email = profile.email || user.email;
+          userData.phone = profile.phone;
+          userData.address = profile.address;
+        }
+      } else if (user.role === "company") {
+        const companyProfile = await CompanyProfile.findOne({
+          userId: user._id,
+        }).select("companyName domain address phone website");
+        if (companyProfile) {
+          userData.companyName = companyProfile.companyName;
+          userData.domain = companyProfile.domain;
+          userData.address = companyProfile.address;
+          userData.phone = companyProfile.phone;
+          userData.website = companyProfile.website;
+        }
+      }
+
+      data.push(userData);
+    }
+
+    const total = await User.countDocuments({
+      email: { $regex: query, $options: "i" },
+    });
+
+    res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Search users error:", error);
+    res.status(500).json({ message: "Server error", error });
   }
 };

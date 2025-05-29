@@ -54,7 +54,6 @@ export const authenticate = async (
         req.companyProfileId = profile?._id.toString();
         break;
       case "admin":
-        console.log("admin");
         req.userRole = "admin";
         break;
       default:
@@ -73,7 +72,6 @@ export const authenticate = async (
 export const requireRole = (roles: UserRole | UserRole[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log(req.userRole);
       const allowedRoles = Array.isArray(roles) ? roles : [roles];
       if (!req.userRole || !allowedRoles.includes(req.userRole)) {
         res.status(403).json({
@@ -253,6 +251,58 @@ export const verifyUser = async (
     // Add user info to request
     req.userId = user._id.toString();
     req.userRole = user.role;
+
+    next();
+  } catch (error) {
+    res.status(403).json({ message: "Authentication failed", error });
+  }
+};
+
+// Staff verification middleware - verifies staff or admin role
+export const verifyStaff = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = req.header("Authorization")?.split(" ")[1];
+
+    if (!token) {
+      res.status(401).json({ message: "Unauthorized - No token provided" });
+      return;
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as JwtPayload;
+
+    // Find the user
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      res.status(401).json({ message: "Unauthorized - User not found" });
+      return;
+    }
+
+    // Check if user has staff or admin role
+    if (user.role !== "staff" && user.role !== "admin") {
+      res.status(403).json({
+        message: "Access denied. Staff or admin role required",
+      });
+      return;
+    }
+
+    // Add user info to request
+    req.userId = user._id.toString();
+    req.userRole = user.role;
+
+    // Get staff profile if applicable
+    if (user.role === "staff") {
+      const staffProfile = await StaffProfile.findOne({ userId: req.userId });
+      if (staffProfile) {
+        req.staffProfileId = staffProfile._id.toString();
+      }
+    }
 
     next();
   } catch (error) {

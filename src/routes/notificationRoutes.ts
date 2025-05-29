@@ -1,29 +1,15 @@
 import express from "express";
 import {
-  getUserNotifications,
   createNotification,
+  getUserNotifications,
   markNotificationAsRead,
-  markAllAsRead,
-  deleteNotification,
-  getNotificationCount,
-  cleanupOldNotifications,
 } from "../controllers/notificationController";
-import { authenticate, requireRole } from "../middleware/authMiddleware";
+import { authenticate } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(authenticate);
-
-// User notification routes
-router.get("/", getUserNotifications);
-router.get("/count", getNotificationCount);
-router.put("/:id/read", markNotificationAsRead);
-router.put("/read-all", markAllAsRead);
-router.delete("/:id", deleteNotification);
-
-// Admin-only routes
-router.post("/", requireRole(["admin", "hr"]), createNotification);
-router.post("/cleanup", requireRole("admin"), cleanupOldNotifications);
+router.get("/", authenticate, getUserNotifications);
+router.post("/", authenticate, createNotification);
+router.put("/:id/read", authenticate, markNotificationAsRead);
 
 export default router;

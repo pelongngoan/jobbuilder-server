@@ -18,7 +18,18 @@ const generateToken = (userId: string, role: string) => {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, role } = req.body;
+    const {
+      email,
+      password,
+      role,
+      firstName,
+      lastName,
+      phoneNumber,
+      companyName,
+      domain,
+      address,
+      website,
+    } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -48,6 +59,9 @@ export const register = async (req: Request, res: Response) => {
         const profile = new Profile({
           userId: newUser._id,
           email: email,
+          firstName: firstName,
+          lastName: lastName,
+          phoneNumber: phoneNumber,
         });
         await profile.save().then((profile) => {
           const userProfile = new UserProfile({
@@ -60,6 +74,12 @@ export const register = async (req: Request, res: Response) => {
       case "company":
         const companyProfile = new CompanyProfile({
           userId: newUser._id,
+          email: email,
+          companyName: companyName,
+          domain: domain,
+          address: address,
+          phoneNumber: phoneNumber,
+          website: website,
         });
         await companyProfile.save();
         break;
@@ -137,6 +157,33 @@ export const login = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+export const logout = async (req: Request, res: Response) => {
+  try {
+    // const { token } = req.body;
+    const userId = req.userId;
+    const user = await User.findByIdAndUpdate(
+      { userId },
+      { lastLogin: new Date() }
+    );
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
     res.status(500).json({
       success: false,
       message: "Server error",

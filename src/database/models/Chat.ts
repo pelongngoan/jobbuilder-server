@@ -2,8 +2,7 @@ import { Schema, model } from "mongoose";
 
 interface IChat {
   userId: Schema.Types.ObjectId;
-  title: string;
-  lastMessage: string;
+  staffId?: Schema.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -12,16 +11,13 @@ const chatSchema = new Schema<IChat>(
   {
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "UserProfile",
       required: true,
     },
-    title: {
-      type: String,
-      required: true,
-    },
-    lastMessage: {
-      type: String,
-      default: "",
+    staffId: {
+      type: Schema.Types.ObjectId,
+      ref: "StaffProfile",
+      default: null,
     },
   },
   {

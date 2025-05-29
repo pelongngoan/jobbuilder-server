@@ -79,10 +79,11 @@ export const deleteResume = async (req: Request, res: Response) => {
     const resume = await Resume.findById(resumeId);
 
     if (!resume) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Resume not found",
       });
+      return;
     }
 
     // If resume is uploaded type, delete the file

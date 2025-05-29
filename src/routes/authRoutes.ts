@@ -6,6 +6,7 @@ import {
   verifyEmail,
   resendVerification,
   register,
+  logout,
 } from "../controllers/authController";
 import { emailService } from "../utils/emailService";
 
@@ -18,7 +19,9 @@ authRoutes.post("/register", (req, res, next) => {
 authRoutes.post("/login", (req, res, next) => {
   login(req, res).catch(next);
 });
-
+authRoutes.post("/logout", (req, res, next) => {
+  logout(req, res).catch(next);
+});
 authRoutes.get("/verify-email/:token", (req, res, next) => {
   verifyEmail(req, res).catch(next);
 });

@@ -119,7 +119,7 @@ export const createStaff = async (req: Request, res: Response) => {
 export const getStaffById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const staff = await StaffProfile.findOne({ userId: id })
+    const staff = await StaffProfile.findById(id)
       .populate("companyId")
       .populate("profile")
       .populate("jobPosts")
@@ -140,10 +140,10 @@ export const getStaffById = async (req: Request, res: Response) => {
 export const updateStaff = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { profile } = req.body;
+    const { role, active } = req.body;
     const staff = await StaffProfile.findByIdAndUpdate(
       id,
-      { profile },
+      { role, active },
       { new: true }
     );
     if (!staff) {
@@ -220,8 +220,6 @@ export const importStaff = async (req: Request, res: Response) => {
   try {
     const companyId = req.companyProfileId;
     const company = await CompanyProfile.findById(companyId);
-    console.log("companyId");
-    console.log(companyId);
     if (!company) {
       return res
         .status(404)

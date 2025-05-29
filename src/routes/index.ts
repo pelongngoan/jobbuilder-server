@@ -9,6 +9,9 @@ import profileRoutes from "./profileRoutes";
 import resumeRoutes from "./resumeRoutes";
 import applicationRoutes from "./applicationRoutes";
 import saveJobRoutes from "./saveJobRoutes";
+import notificationRoutes from "./notificationRoutes";
+import chatRoutes from "./chatRoutes";
+import chatbotRoutes from "./chatbotRoutes";
 const router = express.Router();
 
 router.use("/users", userRoutes);
@@ -21,5 +24,8 @@ router.use("/profile", profileRoutes);
 router.use("/resumes", resumeRoutes);
 router.use("/applications", applicationRoutes);
 router.use("/saveJobs", saveJobRoutes);
+router.use("/notifications", notificationRoutes);
+router.use("/chats", chatRoutes);
+router.use("/chatbot", chatbotRoutes);
 
 export default router;

@@ -1,48 +1,22 @@
 import { Request, Response } from "express";
 import { Chat } from "../database/models/Chat";
 import { ChatMessage } from "../database/models/ChatMessage";
-import { chatUtils } from "../utils/chatUtils";
 
 export const chatController = {
   // Create a new chat session
   async createChat(req: Request, res: Response) {
     try {
-      const { title } = req.body;
-      const userId = req.userId;
+      const { userId, staffId } = req.body;
 
       const chat = await Chat.create({
         userId,
-        title,
+        staffId,
       });
 
-      // Create initial welcome message in multiple languages
-      await ChatMessage.create({
-        chatId: chat._id,
-        content: `# 🌍 Welcome to JobBuilder Chat! / Chào mừng đến với JobBuilder Chat! 🌍
-
-🇺🇸 English:
-Hello! I'm your multilingual job search assistant. I can help you with:
-- Finding jobs
-- Resume recommendations
-- Company information
-- Job search guidance
-
-You can ask me questions in English, Vietnamese, or mix both languages!
-
-🇻🇳 Tiếng Việt:
-Xin chào! Tôi là trợ lý tìm việc đa ngôn ngữ của bạn. Tôi có thể giúp bạn với:
-- Tìm việc làm
-- Gợi ý về sơ yếu lý lịch
-- Thông tin về công ty
-- Hướng dẫn tìm việc
-
-Bạn có thể hỏi tôi bằng tiếng Việt, tiếng Anh hoặc kết hợp cả hai ngôn ngữ!
-
-What would you like to know? / Bạn muốn biết thêm về điều gì?`,
-        role: "assistant",
+      res.status(201).json({
+        success: true,
+        data: chat,
       });
-
-      res.status(201).json(chat);
     } catch (error) {
       res.status(500).json({ message: "Error creating chat", error });
     }
@@ -51,11 +25,60 @@ What would you like to know? / Bạn muốn biết thêm về điều gì?`,
   // Get all chats for a user
   async getChats(req: Request, res: Response) {
     try {
-      const userId = req.userId;
-      const chats = await Chat.find({ userId }).sort({ updatedAt: -1 });
-      res.json(chats);
+      const userId = req.userProfileId;
+      const staffId = req.staffProfileId;
+      const chats = await Chat.find({
+        $or: [{ userId }, { staffId }],
+      })
+        .sort({ updatedAt: -1 })
+        .populate({
+          path: "staffId",
+          populate: {
+            path: "profile",
+            select: "email firstName lastName profilePicture",
+          },
+        });
+      res.json({
+        success: true,
+        data: chats,
+      });
     } catch (error) {
       res.status(500).json({ message: "Error fetching chats", error });
+    }
+  },
+
+  // Get chat by id
+  async getChatById(req: Request, res: Response) {
+    try {
+      const { chatId } = req.params;
+      const chat = await Chat.findById(chatId)
+        .populate({
+          path: "staffId",
+          populate: {
+            path: "profile",
+            select: "email firstName lastName profilePicture",
+          },
+        })
+        .populate({
+          path: "userId",
+          populate: {
+            path: "profile",
+            select: "email firstName lastName profilePicture",
+          },
+        });
+      if (!chat) {
+        res.status(404).json({
+          success: false,
+          message: "Chat not found",
+        });
+        return;
+      }
+      res.json({
+        success: true,
+        data: chat,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching chat", error });
     }
   },
 
@@ -63,12 +86,37 @@ What would you like to know? / Bạn muốn biết thêm về điều gì?`,
   async getChatMessages(req: Request, res: Response) {
     try {
       const { chatId } = req.params;
-      const messages = await ChatMessage.find({ chatId })
-        .sort({ createdAt: 1 })
-        .populate("jobRecommendations");
-      res.json(messages);
+      const messages = await ChatMessage.find({ chatId }).sort({
+        createdAt: 1,
+      });
+      res.json({
+        success: true,
+        data: messages,
+      });
     } catch (error) {
       res.status(500).json({ message: "Error fetching messages", error });
+    }
+  },
+
+  // Get chat by receiver id
+  async getChatByReceiverId(req: Request, res: Response) {
+    try {
+      const { receiverId } = req.params;
+      const userId = req.userProfileId;
+      console.log(receiverId, userId);
+      const chat = await Chat.findOne({
+        $or: [
+          { userId, staffId: receiverId },
+          { userId: receiverId, staffId: userId },
+        ],
+      });
+
+      res.json({
+        success: true,
+        data: chat,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching chat", error });
     }
   },
 
@@ -78,35 +126,25 @@ What would you like to know? / Bạn muốn biết thêm về điều gì?`,
       const { chatId } = req.params;
       const { content } = req.body;
       const userId = req.userId;
+      // Get chat info to determine chat type
+      const chat = await Chat.findById(chatId);
+      if (!chat) {
+        res.status(404).json({ message: "Chat not found" });
+        return;
+      }
 
       // Save user message
       const userMessage = await ChatMessage.create({
         chatId,
+        senderId: userId,
         content,
-        role: "user",
       });
-
-      // Update chat's last message
-      await Chat.findByIdAndUpdate(chatId, { lastMessage: content });
-
-      // Analyze query and generate response
-      const queryType = chatUtils.analyzeQuery(content);
-      const response = await chatUtils.generateResponse(queryType, content);
-
-      // Create assistant response
-      const assistantMessage = await ChatMessage.create({
-        chatId,
-        content: response.content,
-        role: "assistant",
-        jobRecommendations: response.jobRecommendations.map((job) => job._id),
+      const messages = await ChatMessage.find({ chatId }).sort({
+        createdAt: 1,
       });
-
-      // Populate job recommendations
-      await assistantMessage.populate("jobRecommendations");
-
       res.json({
-        userMessage,
-        assistantMessage,
+        success: true,
+        data: messages,
       });
     } catch (error) {
       res.status(500).json({ message: "Error sending message", error });

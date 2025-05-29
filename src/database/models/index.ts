@@ -10,11 +10,10 @@ import { Resume } from "./Resume";
 import { SavedJob } from "./SavedJobs";
 import { User } from "./User";
 import { UserProfile } from "./UserProfile";
-import { School } from "./School";
 import { Profile } from "./Profile";
 import { StaffProfile } from "./StaffProfile";
 
-// Export all models
+// Export all models and types
 export {
   Application,
   Chat,
@@ -27,7 +26,6 @@ export {
   SavedJob,
   User,
   UserProfile,
-  School,
   Profile,
   StaffProfile,
 };

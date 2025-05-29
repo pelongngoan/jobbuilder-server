@@ -13,10 +13,13 @@ import {
   saveJob,
   applyToJob,
   removeApplication,
-  addEducation,
-  removeEducation,
   getUsers,
   importUsers,
+  createUser,
+  getUserById,
+  deleteUser,
+  updateUser,
+  searchUsers,
 } from "../controllers/userController";
 import { authenticate, requireRole } from "../middleware/authMiddleware";
 import { uploadResume } from "../utils/fileUpload";
@@ -24,6 +27,10 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 const userRoutes = express.Router();
+userRoutes.get("/search", authenticate, requireRole("admin"), searchUsers);
+
+userRoutes.post("/", authenticate, requireRole("admin"), createUser);
+
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
@@ -88,20 +95,6 @@ userRoutes.put(
   removeApplication
 );
 
-// 🔹 Education Routes
-userRoutes.post(
-  "/education/:educationId",
-  authenticate,
-  requireRole("user"),
-  addEducation
-);
-userRoutes.put(
-  "/education/:educationId",
-  authenticate,
-  requireRole("user"),
-  removeEducation
-);
-
 // 🔹 Resume Routes
 userRoutes.post("/resumes", authenticate, requireRole("user"), createResume);
 userRoutes.post(
@@ -147,5 +140,8 @@ userRoutes.post(
     });
   }
 );
+userRoutes.get("/:userId", authenticate, requireRole("admin"), getUserById);
+userRoutes.put("/:userId", authenticate, requireRole("admin"), updateUser);
+userRoutes.delete("/:userId", authenticate, requireRole("admin"), deleteUser);
 
 export default userRoutes;

@@ -2,11 +2,9 @@ import { Schema, model, Document } from "mongoose";
 
 export interface INotification extends Document {
   userId: Schema.Types.ObjectId;
-  type: "application_status" | "job_recommendation" | "message" | "system";
+  type: "job_application" | "chat_message";
   content: string;
   isRead: boolean;
-  referenceId?: Schema.Types.ObjectId;
-  referenceModel?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,7 +18,7 @@ const notificationSchema = new Schema<INotification>(
     },
     type: {
       type: String,
-      enum: ["application_status", "job_recommendation", "message", "system"],
+      enum: ["job_application", "chat_message"],
       required: true,
     },
     content: {
@@ -30,15 +28,6 @@ const notificationSchema = new Schema<INotification>(
     isRead: {
       type: Boolean,
       default: false,
-    },
-    referenceId: {
-      type: Schema.Types.ObjectId,
-      required: false,
-    },
-    referenceModel: {
-      type: String,
-      enum: ["Job", "Application", "Chat", "Company", "User", "StaffProfile"],
-      required: false,
     },
   },
   { timestamps: true }

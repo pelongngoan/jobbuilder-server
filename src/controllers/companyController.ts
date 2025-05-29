@@ -431,8 +431,6 @@ export const importCompanyStaffFromCSV = async (
 ) => {
   const file = req.file;
   const companyId = req.companyProfileId;
-  console.log("req.body");
-  console.log(companyId);
   if (!file) {
     return res.status(400).json({ message: "No file uploaded" });
   }

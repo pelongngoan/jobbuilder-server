@@ -465,37 +465,106 @@ export const deleteJob = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+const normalizeInput = (value?: string) =>
+  typeof value === "string" ? value.replace(/\s+/g, "").toLowerCase() : "";
+
 export const searchJobs = async (req: Request, res: Response) => {
   try {
-    const { query, page, limit } = req.query;
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
+    const {
+      title,
+      category,
+      location,
+      jobType,
+      experienceLevel,
+      salaryFrom,
+      salaryTo,
+      page = "1",
+      limit = "10",
+    } = req.query;
+
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 10;
     const skip = (pageNum - 1) * limitNum;
-    const jobs = await Job.find({
-      title: { $regex: query as string, $options: "i" },
-      category: { $regex: query as string, $options: "i" },
-      location: { $regex: query as string, $options: "i" },
-      jobType: { $regex: query as string, $options: "i" },
-      experienceLevel: { $regex: query as string, $options: "i" },
-      salaryFrom: { $gte: Number(query) },
-      salaryTo: { $lte: Number(query) },
-      benefits: { $regex: query as string, $options: "i" },
-      skills: { $regex: query as string, $options: "i" },
-      status: { $regex: query as string, $options: "i" },
-      deadline: { $lte: new Date() },
-    })
+
+    const query: any = {};
+
+    // Advanced fuzzy search using $expr + $regexMatch for title and location
+    const expressions = [];
+    if (title) {
+      expressions.push({
+        $regexMatch: {
+          input: {
+            $replaceAll: {
+              input: { $toLower: "$title" },
+              find: " ",
+              replacement: "",
+            },
+          },
+          regex: normalizeInput(title as string),
+        },
+      });
+    }
+    if (location) {
+      expressions.push({
+        $regexMatch: {
+          input: {
+            $replaceAll: {
+              input: { $toLower: "$location" },
+              find: " ",
+              replacement: "",
+            },
+          },
+          regex: normalizeInput(location as string),
+        },
+      });
+    }
+    if (expressions.length > 0) {
+      query.$expr =
+        expressions.length === 1 ? expressions[0] : { $and: expressions };
+    }
+
+    // Other filters using regex (case-insensitive)
+    if (category) {
+      query.category = { $regex: category as string, $options: "i" };
+    }
+    if (jobType) {
+      query.jobType = { $regex: jobType as string, $options: "i" };
+    }
+    if (experienceLevel) {
+      query.experienceLevel = {
+        $regex: experienceLevel as string,
+        $options: "i",
+      };
+    }
+
+    // Salary filtering (only add if valid numbers)
+    const salaryFromNum = Number(salaryFrom);
+    const salaryToNum = Number(salaryTo);
+    if (!isNaN(salaryFromNum)) {
+      query.salaryFrom = { $gte: salaryFromNum };
+    }
+    if (!isNaN(salaryToNum)) {
+      query.salaryTo = { $lte: salaryToNum };
+    }
+
+    const jobs = await Job.find(query)
       .populate("category")
       .populate("companyId")
       .populate("contacterId")
       .skip(skip)
       .limit(limitNum);
-    const total = await Job.countDocuments({
-      title: { $regex: query as string, $options: "i" },
-    });
+
+    const total = await Job.countDocuments(query);
+
     res.status(200).json({
       success: true,
       data: jobs,
-      total,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
     console.error("Search jobs error:", error);

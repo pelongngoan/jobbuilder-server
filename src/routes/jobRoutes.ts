@@ -27,12 +27,13 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 const jobRoutes = express.Router();
+jobRoutes.get("/search", searchJobs);
 
 jobRoutes.post("/", authenticate, requireRole(["staff", "company"]), createJob);
 jobRoutes.get(
   "/company",
   authenticate,
-  // requireRole(["staff", "company"]),
+  requireRole(["company"]),
   getCompanyJobs
 );
 jobRoutes.put(
@@ -65,6 +66,5 @@ jobRoutes.delete(
   requireRole(["staff", "company"]),
   deleteJob
 );
-jobRoutes.get("/search", searchJobs);
 
 export default jobRoutes;
