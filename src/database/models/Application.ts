@@ -14,8 +14,9 @@ export interface IApplication extends Document {
   companyId: Schema.Types.ObjectId;
   jobId: Schema.Types.ObjectId;
   resumeId: Schema.Types.ObjectId;
-  status: ApplicationStatus;
+  hrId: Schema.Types.ObjectId;
   interviewerId?: Schema.Types.ObjectId;
+  status: ApplicationStatus;
   interviewDate?: Date;
   appliedAt: Date;
   updatedAt: Date;
@@ -36,6 +37,7 @@ const applicationSchema = new Schema<IApplication>(
       enum: Object.values(ApplicationStatus),
       default: ApplicationStatus.PENDING,
     },
+    hrId: { type: Schema.Types.ObjectId, ref: "StaffProfile" },
     interviewerId: { type: Schema.Types.ObjectId, ref: "StaffProfile" },
     interviewDate: { type: Date },
   },

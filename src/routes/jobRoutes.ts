@@ -10,6 +10,7 @@ import {
   updateJob,
   deleteJob,
   searchJobs,
+  getAllJobCategories,
 } from "../controllers/jobController";
 import { requireRole, authenticate } from "../middleware/authMiddleware";
 import multer from "multer";
@@ -28,12 +29,13 @@ const upload = multer({ storage });
 
 const jobRoutes = express.Router();
 jobRoutes.get("/search", searchJobs);
+jobRoutes.get("/categories", getAllJobCategories);
 
 jobRoutes.post("/", authenticate, requireRole(["staff", "company"]), createJob);
 jobRoutes.get(
-  "/company",
+  "/company/:companyId",
   authenticate,
-  requireRole(["company"]),
+  // requireRole(["company"]),
   getCompanyJobs
 );
 jobRoutes.put(

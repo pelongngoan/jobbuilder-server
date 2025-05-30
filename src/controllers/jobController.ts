@@ -106,6 +106,7 @@ export const createJob = async (req: Request, res: Response) => {
       deadline,
       requirements,
       contacterId,
+      contacterEmail: (contacter.profile as any)?.email,
       keyResponsibilities,
       experienceLevel,
       other,
@@ -114,7 +115,11 @@ export const createJob = async (req: Request, res: Response) => {
     });
 
     await newJob.save();
-    res.status(201).json({ message: "Job created successfully", newJob });
+    res.status(201).json({
+      message: "Job created successfully",
+      newJob,
+      success: true,
+    });
   } catch (error) {
     console.error("Job creation error:", error);
     res.status(500).json({
@@ -162,7 +167,7 @@ export const updateJob = async (req: Request, res: Response) => {
         salaryFrom,
         salaryTo,
         salaryCurrency,
-        contacterEmail: staff.profile?.email,
+        contacterEmail: (staff.profile as any)?.email,
         skills,
         status,
         benefits,
@@ -176,7 +181,11 @@ export const updateJob = async (req: Request, res: Response) => {
       },
       { new: true }
     );
-    res.status(200).json({ message: "Job updated successfully", job });
+    res.status(200).json({
+      message: "Job updated successfully",
+      job,
+      success: true,
+    });
   } catch (error) {
     console.error("Job update error:", error);
     res.status(500).json({ message: "Server error", error });
@@ -320,7 +329,7 @@ export const uploadJobsFromCSV = async (req: Request, res: Response) => {
 };
 export const getCompanyJobs = async (req: Request, res: Response) => {
   try {
-    const companyId = req.query.companyId as string;
+    const companyId = req.params.companyId;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
@@ -329,7 +338,6 @@ export const getCompanyJobs = async (req: Request, res: Response) => {
       res.status(400).json({ message: "Company ID is required" });
       return;
     }
-
     const companyProfile = await CompanyProfile.findById(companyId);
     if (!companyProfile) {
       res.status(404).json({ message: "Company profile not found" });
@@ -478,6 +486,7 @@ export const searchJobs = async (req: Request, res: Response) => {
       experienceLevel,
       salaryFrom,
       salaryTo,
+      salaryCurrency,
       page = "1",
       limit = "10",
     } = req.query;
@@ -488,69 +497,75 @@ export const searchJobs = async (req: Request, res: Response) => {
 
     const query: any = {};
 
-    // Advanced fuzzy search using $expr + $regexMatch for title and location
-    const expressions = [];
+    // Text search for title using regex (case-insensitive)
     if (title) {
-      expressions.push({
-        $regexMatch: {
-          input: {
-            $replaceAll: {
-              input: { $toLower: "$title" },
-              find: " ",
-              replacement: "",
-            },
-          },
-          regex: normalizeInput(title as string),
-        },
-      });
+      query.title = { $regex: title as string, $options: "i" };
     }
+
+    // Location search using regex (case-insensitive)
     if (location) {
-      expressions.push({
-        $regexMatch: {
-          input: {
-            $replaceAll: {
-              input: { $toLower: "$location" },
-              find: " ",
-              replacement: "",
-            },
-          },
-          regex: normalizeInput(location as string),
-        },
-      });
-    }
-    if (expressions.length > 0) {
-      query.$expr =
-        expressions.length === 1 ? expressions[0] : { $and: expressions };
+      query.location = { $regex: location as string, $options: "i" };
     }
 
-    // Other filters using regex (case-insensitive)
+    // Category search - handle both category name and ID
     if (category) {
-      query.category = { $regex: category as string, $options: "i" };
-    }
-    if (jobType) {
-      query.jobType = { $regex: jobType as string, $options: "i" };
-    }
-    if (experienceLevel) {
-      query.experienceLevel = {
-        $regex: experienceLevel as string,
-        $options: "i",
-      };
+      // Try to find category by name first
+      const categoryDoc = await JobCategory.findOne({
+        $or: [
+          { name: { $regex: category as string, $options: "i" } },
+          { slug: { $regex: category as string, $options: "i" } },
+        ],
+      });
+
+      if (categoryDoc) {
+        query.category = categoryDoc._id;
+      } else {
+        // If no category found by name, try direct ID match
+        query.category = category;
+      }
     }
 
-    // Salary filtering (only add if valid numbers)
+    // Job type filter
+    if (jobType) {
+      query.jobType = jobType;
+    }
+
+    // Experience level filter
+    if (experienceLevel) {
+      query.experienceLevel = experienceLevel;
+    }
+
+    // Currency filter
+    if (salaryCurrency) {
+      query.salaryCurrency = salaryCurrency;
+    }
+
+    // Salary filtering
     const salaryFromNum = Number(salaryFrom);
     const salaryToNum = Number(salaryTo);
-    if (!isNaN(salaryFromNum)) {
-      query.salaryFrom = { $gte: salaryFromNum };
+
+    if (!isNaN(salaryFromNum) && salaryFromNum > 0) {
+      query.salaryTo = { $gte: salaryFromNum }; // Job's max salary should be at least the requested minimum
     }
-    if (!isNaN(salaryToNum)) {
-      query.salaryTo = { $lte: salaryToNum };
+
+    if (!isNaN(salaryToNum) && salaryToNum > 0) {
+      query.salaryFrom = { ...query.salaryFrom, $lte: salaryToNum }; // Job's min salary should be at most the requested maximum
     }
+
+    // Only show open jobs by default
+    query.status = "open";
 
     const jobs = await Job.find(query)
       .populate("category")
       .populate("companyId")
-      .populate("contacterId")
+      .populate({
+        path: "contacterId",
+        populate: {
+          path: "profile",
+          select: "email firstName lastName",
+        },
+      })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
 
@@ -568,6 +583,20 @@ export const searchJobs = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Search jobs error:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+export const getAllJobCategories = async (req: Request, res: Response) => {
+  try {
+    const categories = await JobCategory.find().sort({ name: 1 });
+
+    res.status(200).json({
+      success: true,
+      data: categories,
+    });
+  } catch (error) {
+    console.error("Get job categories error:", error);
     res.status(500).json({ message: "Server error", error });
   }
 };

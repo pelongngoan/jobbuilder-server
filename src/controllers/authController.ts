@@ -154,6 +154,8 @@ export const login = async (req: Request, res: Response) => {
       id: user._id,
       role: user.role,
       useProfileId: profile?._id || null,
+      companyProfileId: profile?.companyId || null,
+      companyId: profile?.companyId || null,
     });
   } catch (error) {
     console.error("Login error:", error);

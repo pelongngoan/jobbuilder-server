@@ -53,6 +53,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     }
 
     res.status(200).json({
+      success: true,
       message: "Profile updated successfully",
       data: profile,
     });

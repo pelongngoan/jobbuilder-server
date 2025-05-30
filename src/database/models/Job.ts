@@ -4,7 +4,13 @@ export interface IJob extends Document {
   companyId: Schema.Types.ObjectId;
   title: string;
   location: string;
-  jobType: "full-time" | "part-time" | "contract" | "internship" | "remote";
+  jobType:
+    | "full-time"
+    | "part-time"
+    | "contract"
+    | "internship"
+    | "remote"
+    | "freelance";
   description: string;
   salaryFrom: number;
   salaryTo: number;
@@ -19,7 +25,13 @@ export interface IJob extends Document {
   contacterEmail: string;
   keyResponsibilities?: string[];
   applications: Schema.Types.ObjectId[];
-  experienceLevel?: "Entry" | "Mid" | "Senior" | "Executive";
+  experienceLevel?:
+    | "entry"
+    | "junior"
+    | "mid"
+    | "senior"
+    | "lead"
+    | "executive";
   other?: { title?: string; description?: string; [key: string]: any };
   viewCount: number;
   applicationCount: number;
@@ -40,7 +52,14 @@ const jobSchema = new Schema<IJob>(
     location: { type: String, required: true },
     jobType: {
       type: String,
-      enum: ["full-time", "part-time", "contract", "internship", "remote"],
+      enum: [
+        "full-time",
+        "part-time",
+        "contract",
+        "internship",
+        "remote",
+        "freelance",
+      ],
       required: true,
     },
     salaryCurrency: { type: String, required: true },

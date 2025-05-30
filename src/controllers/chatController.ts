@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { Chat } from "../database/models/Chat";
 import { ChatMessage } from "../database/models/ChatMessage";
+import { createNotificationHelper } from "./notificationController";
+import { io } from "../index";
+import { emitNotification, emitChatMessage } from "../config/socket";
 
 export const chatController = {
   // Create a new chat session
@@ -33,6 +36,13 @@ export const chatController = {
         .sort({ updatedAt: -1 })
         .populate({
           path: "staffId",
+          populate: {
+            path: "profile",
+            select: "email firstName lastName profilePicture",
+          },
+        })
+        .populate({
+          path: "userId",
           populate: {
             path: "profile",
             select: "email firstName lastName profilePicture",
@@ -126,8 +136,24 @@ export const chatController = {
       const { chatId } = req.params;
       const { content } = req.body;
       const userId = req.userId;
+
       // Get chat info to determine chat type
-      const chat = await Chat.findById(chatId);
+      const chat = await Chat.findById(chatId)
+        .populate({
+          path: "staffId",
+          populate: {
+            path: "profile",
+            select: "email firstName lastName profilePicture",
+          },
+        })
+        .populate({
+          path: "userId",
+          populate: {
+            path: "profile",
+            select: "email firstName lastName profilePicture",
+          },
+        });
+
       if (!chat) {
         res.status(404).json({ message: "Chat not found" });
         return;
@@ -139,9 +165,51 @@ export const chatController = {
         senderId: userId,
         content,
       });
+
+      // Update chat's updatedAt timestamp
+      await Chat.findByIdAndUpdate(chatId, { updatedAt: new Date() });
+
+      // Determine receiver for notification
+      const chatUser = chat.userId as any;
+      const chatStaff = chat.staffId as any;
+
+      const receiverId =
+        chatUser?._id?.toString() === userId
+          ? chatStaff?._id?.toString()
+          : chatUser?._id?.toString();
+
+      // Create notification for the receiver if they're not the sender
+      if (receiverId && receiverId !== userId) {
+        try {
+          const senderInfo =
+            chatUser?._id?.toString() === userId
+              ? chatUser?.profile
+              : chatStaff?.profile;
+
+          const notification = await createNotificationHelper({
+            userId: receiverId,
+            type: "chat_message",
+            title: "New Message",
+            content: `You have a new message from ${senderInfo?.firstName} ${senderInfo?.lastName}`,
+            relatedId: chatId,
+            relatedType: "chat",
+            actionUrl: `/user/chat/${chatId}`,
+          });
+
+          // Emit real-time notification
+          emitNotification(io, receiverId, notification);
+        } catch (notificationError) {
+          console.error("Error creating chat notification:", notificationError);
+        }
+      }
+
+      // Emit real-time chat message to all participants
+      emitChatMessage(io, chatId, userMessage);
+
       const messages = await ChatMessage.find({ chatId }).sort({
         createdAt: 1,
       });
+
       res.json({
         success: true,
         data: messages,

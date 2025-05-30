@@ -12,6 +12,7 @@ import saveJobRoutes from "./saveJobRoutes";
 import notificationRoutes from "./notificationRoutes";
 import chatRoutes from "./chatRoutes";
 import chatbotRoutes from "./chatbotRoutes";
+import dashboardRoutes from "./dashboardRoutes";
 const router = express.Router();
 
 router.use("/users", userRoutes);
@@ -27,5 +28,6 @@ router.use("/saveJobs", saveJobRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/chats", chatRoutes);
 router.use("/chatbot", chatbotRoutes);
+router.use("/dashboard", dashboardRoutes);
 
 export default router;

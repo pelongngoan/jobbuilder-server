@@ -1,17 +1,23 @@
 import express from "express";
+import http from "http";
 import router from "./routes";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import cors from "cors";
 import path from "path";
 import { errorHandler } from "./middleware/errorMiddleware";
+import { initializeSocket } from "./config/socket";
 // Import all models to ensure they are registered
 import "./database/models";
 
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
 const port = process.env.PORT;
+
+// Initialize Socket.io
+export const io = initializeSocket(server);
 
 // CORS configuration
 const corsOptions = {
@@ -42,6 +48,6 @@ app.use(errorHandler);
 // Connect to MongoDB
 connectDB();
 
-app.listen(port, () => {
+server.listen(port, () => {
   return console.log(`Express is listening at http://localhost:${port}`);
 });

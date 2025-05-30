@@ -109,7 +109,6 @@ export const createStaff = async (req: Request, res: Response) => {
     res.status(201).json({
       success: true,
       message: "Staff created successfully",
-      data: staff,
     });
   } catch (error) {
     console.error("Create company staff error:", error);
@@ -119,6 +118,7 @@ export const createStaff = async (req: Request, res: Response) => {
 export const getStaffById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
     const staff = await StaffProfile.findById(id)
       .populate("companyId")
       .populate("profile")
@@ -150,9 +150,11 @@ export const updateStaff = async (req: Request, res: Response) => {
       res.status(404).json({ message: "Staff not found" });
       return;
     }
-    res
-      .status(200)
-      .json({ message: "Staff updated successfully", data: staff });
+    res.status(200).json({
+      message: "Staff updated successfully",
+      data: staff,
+      success: true,
+    });
   } catch (error) {
     console.error("Update staff error:", error);
     res.status(500).json({ message: "Server error", error });
@@ -169,7 +171,10 @@ export const deleteStaff = async (req: Request, res: Response) => {
     await Profile.findByIdAndDelete(staff.profile);
     await StaffProfile.findByIdAndDelete(id);
     await User.findByIdAndDelete(staff.userId);
-    res.status(200).json({ message: "Staff deleted successfully" });
+    res.status(200).json({
+      message: "Staff deleted successfully",
+      success: true,
+    });
   } catch (error) {
     console.error("Delete staff error:", error);
     res.status(500).json({ message: "Server error", error });
@@ -177,7 +182,7 @@ export const deleteStaff = async (req: Request, res: Response) => {
 };
 export const searchStaff = async (req: Request, res: Response) => {
   try {
-    const { role, email, page, limit } = req.query;
+    const { role, email, page, limit, companyId } = req.query;
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const profile = await Profile.find({
@@ -186,18 +191,26 @@ export const searchStaff = async (req: Request, res: Response) => {
     let staffs: any[] = [];
     for (const p of profile) {
       const staff = await StaffProfile.find({
+        companyId: companyId,
         profile: p._id,
         role: { $regex: role, $options: "i" },
       })
         .populate("userId")
-        .skip((pageNum - 1) * limitNum)
-        .limit(limitNum)
         .sort({ createdAt: -1 });
       staffs.push(...staff);
     }
+    const total = staffs.length;
+    staffs = staffs.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
     res.status(200).json({
       success: true,
       data: staffs,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
     console.error("Search staff error:", error);
@@ -267,8 +280,8 @@ export const importStaff = async (req: Request, res: Response) => {
               continue;
             }
 
-            const randomPassword = generateRandomPassword();
-
+            // const randomPassword = generateRandomPassword();
+            const randomPassword = "12345678";
             const user = await User.create({
               email,
               password: randomPassword,
