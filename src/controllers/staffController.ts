@@ -183,17 +183,40 @@ export const deleteStaff = async (req: Request, res: Response) => {
 export const searchStaff = async (req: Request, res: Response) => {
   try {
     const { role, email, page, limit, companyId } = req.query;
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 10;
+
+    // Handle companyId - use from query if provided and not empty, otherwise use from req
+    let finalCompanyId = req.companyProfileId;
+    if (companyId && companyId !== "") {
+      finalCompanyId = companyId as string;
+    }
+
+    // If no companyId available, check if we can get it from staff profile
+    if (!finalCompanyId) {
+      const staffId = req.staffProfileId;
+      if (staffId) {
+        const staff = await StaffProfile.findById(staffId);
+        if (staff) {
+          finalCompanyId = staff.companyId.toString();
+        }
+      }
+    }
+
+    if (!finalCompanyId) {
+      res.status(400).json({ message: "Company ID is required" });
+      return;
+    }
+
     const profile = await Profile.find({
-      email: { $regex: email, $options: "i" },
+      email: { $regex: email || "", $options: "i" },
     });
     let staffs: any[] = [];
     for (const p of profile) {
       const staff = await StaffProfile.find({
-        companyId: companyId,
+        companyId: finalCompanyId,
         profile: p._id,
-        role: { $regex: role, $options: "i" },
+        role: { $regex: role || "", $options: "i" },
       })
         .populate("userId")
         .sort({ createdAt: -1 });
