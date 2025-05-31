@@ -10,11 +10,11 @@ interface AuthenticatedSocket extends Socket {
 export const initializeSocket = (server: HttpServer) => {
   const io = new SocketIOServer(server, {
     cors: {
-      origin:
-        // process.env.CLIENT_URL ||
+      origin: [
+        // process.env.CLIENT_URL,
         "https://jobbuilder-client.vercel.app",
-      // ||
-      // "http://localhost:5173",
+        "http://localhost:5173",
+      ],
       methods: ["GET", "POST"],
       credentials: true,
     },
