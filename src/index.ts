@@ -21,10 +21,13 @@ export const io = initializeSocket(server);
 
 // CORS configuration
 const corsOptions = {
-  origin:
-    // process.env.CLIENT_URL ||
-    // "http://localhost:5173" ||
-    "https://jobbuilder-client.vercel.app", // your frontend URL
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:3001",
+    "https://jobbuilder-client.vercel.app",
+    process.env.CLIENT_URL, // Allow environment variable URL
+  ].filter(Boolean), // Remove undefined values
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
